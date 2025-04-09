@@ -8,6 +8,7 @@ import {
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
+// Create a MemoryStore constructor with typed session
 const MemoryStore = createMemoryStore(session);
 
 // Interface for storage operations
@@ -41,7 +42,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: ReturnType<typeof createMemoryStore>;
 }
 
 // In-memory storage implementation
@@ -58,7 +59,7 @@ export class MemStorage implements IStorage {
   private conversationId: number = 1;
   private messageId: number = 1;
   
-  sessionStore: session.SessionStore;
+  sessionStore: ReturnType<typeof createMemoryStore>;
 
   constructor() {
     this.users = new Map();
@@ -67,6 +68,7 @@ export class MemStorage implements IStorage {
     this.conversations = new Map();
     this.messages = new Map();
     
+    // Create session store with the specified options
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
     });

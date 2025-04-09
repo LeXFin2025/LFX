@@ -32,16 +32,18 @@ const upload = multer({
       'image/png'
     ];
     
-    if (allowedMimeTypes.includes(file.mimetype)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Invalid file type. Expected one of: ${allowedMimeTypes.join(', ')}, but got ${file.mimetype}`));
-    }
-    
-    console.log('Multer file filter check passed:', {
+    console.log('Multer file filter check:', {
       originalname: file.originalname,
       mimetype: file.mimetype
     });
+    
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      console.log('File type accepted');
+      callback(null, true);
+    } else {
+      console.log('File type rejected');
+      callback(new Error(`Invalid file type. Expected one of: ${allowedMimeTypes.join(', ')}, but got ${file.mimetype}`));
+    }
   }
 });
 
@@ -208,8 +210,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Custom error handler for multer
+  const handleMulterError = (err: any, req: Request, res: Response, next: Function) => {
+    if (err instanceof multer.MulterError) {
+      console.error("Multer error:", err);
+      return res.status(400).send(`File upload error: ${err.message}`);
+    } else if (err) {
+      console.error("Unknown error during file upload:", err);
+      return res.status(500).send(`Unknown error during file upload: ${err.message}`);
+    }
+    next();
+  };
+
   // Upload a new document
-  app.post("/api/documents/upload", upload.single('file'), async (req, res) => {
+  app.post("/api/documents/upload", upload.single('file'), handleMulterError, async (req: Request, res: Response) => {
+    console.log("Reached document upload handler");
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {

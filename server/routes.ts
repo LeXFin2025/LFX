@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { Storage } from "./storage";
+import { storage as dbStorage, type Storage } from "./storage";
 import { setupAuth } from "./auth";
 import multer from "multer";
 import { ServiceCategoryEnum, DocumentStatusEnum } from "@shared/schema";
@@ -8,10 +8,16 @@ import { z } from "zod";
 import { WebSocketServer } from "ws";
 import { WebSocket } from "ws";
 
+// Extend WebSocket type to include custom properties
+interface AuthenticatedWebSocket extends WebSocket {
+  sessionId?: string;
+  userId?: number;
+}
+
 // Configure multer for file uploads
-const storage = multer.memoryStorage();
+const multerStorage = multer.memoryStorage();
 const upload = multer({ 
-  storage: storage,
+  storage: multerStorage,
   limits: {
     fileSize: 25 * 1024 * 1024, // 25MB max file size
   } 
@@ -29,7 +35,7 @@ const analyzeDocument = async (
   await new Promise(resolve => setTimeout(resolve, 3000));
   
   // Get user's jurisdiction from storage
-  const user = await storage.getUser(document.userId);
+  const user = await dbStorage.getUser(document.userId);
   const jurisdiction = user?.jurisdiction || "USA";
   
   // Return analysis result based on document category
@@ -151,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const category = req.query.category as string | undefined;
-      const documents = await storage.getDocumentsByUserId(req.user!.id, category);
+      const documents = await dbStorage.getDocumentsByUserId(req.user!.id, category);
       res.json(documents);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -167,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).send("Invalid document ID");
       
-      const document = await storage.getDocument(id);
+      const document = await dbStorage.getDocument(id);
       if (!document) return res.status(404).send("Document not found");
       
       // Check if user owns the document
@@ -194,14 +200,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!category.success) return res.status(400).send("Invalid category");
       
       // Create document record
-      const document = await storage.createDocument({
+      const document = await dbStorage.createDocument({
         userId: req.user!.id,
         filename: req.file.originalname,
         category: category.data,
       });
       
       // Create activity record for upload
-      await storage.createActivity({
+      await dbStorage.createActivity({
         userId: req.user!.id,
         type: "upload",
         details: {
@@ -227,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
-      const activities = await storage.getActivitiesByUserId(req.user!.id);
+      const activities = await dbStorage.getActivitiesByUserId(req.user!.id);
       res.json(activities);
     } catch (error) {
       console.error("Error fetching activities:", error);
@@ -240,10 +246,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
-      let conversation = await storage.getActiveConversation(req.user!.id);
+      let conversation = await dbStorage.getActiveConversation(req.user!.id);
       
       if (!conversation) {
-        conversation = await storage.createConversation({
+        conversation = await dbStorage.createConversation({
           userId: req.user!.id
         });
       }
@@ -260,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
-      const conversation = await storage.createConversation({
+      const conversation = await dbStorage.createConversation({
         userId: req.user!.id
       });
       
@@ -279,13 +285,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conversationId = parseInt(req.params.id);
       if (isNaN(conversationId)) return res.status(400).send("Invalid conversation ID");
       
-      const conversation = await storage.getConversation(conversationId);
+      const conversation = await dbStorage.getConversation(conversationId);
       if (!conversation) return res.status(404).send("Conversation not found");
       
       // Check if user owns the conversation
       if (conversation.userId !== req.user!.id) return res.status(403).send("Forbidden");
       
-      const messages = await storage.getMessagesByConversationId(conversationId);
+      const messages = await dbStorage.getMessagesByConversationId(conversationId);
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -301,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conversationId = parseInt(req.params.id);
       if (isNaN(conversationId)) return res.status(400).send("Invalid conversation ID");
       
-      const conversation = await storage.getConversation(conversationId);
+      const conversation = await dbStorage.getConversation(conversationId);
       if (!conversation) return res.status(404).send("Conversation not found");
       
       // Check if user owns the conversation
@@ -313,17 +319,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create user message
-      const userMessage = await storage.createMessage({
+      const userMessage = await dbStorage.createMessage({
         conversationId,
         sender: "user",
         content: req.body.content,
       });
       
       // Update conversation's lastMessageAt
-      await storage.updateConversation(conversationId, { lastMessageAt: new Date() });
+      await dbStorage.updateConversation(conversationId, { lastMessageAt: new Date() });
       
       // Create activity for the message
-      await storage.createActivity({
+      await dbStorage.createActivity({
         userId: req.user!.id,
         type: "lexassist",
         details: {
@@ -351,7 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws: AuthenticatedWebSocket) => {
     console.log('Client connected to WebSocket');
     
     ws.on('message', (message) => {
@@ -377,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to broadcast updates to connected clients
   const broadcastToUser = (userId: number, data: any) => {
-    wss.clients.forEach((client) => {
+    wss.clients.forEach((client: AuthenticatedWebSocket) => {
       if (client.readyState === WebSocket.OPEN && client.userId === userId) {
         client.send(JSON.stringify(data));
       }
@@ -388,10 +394,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function processDocumentAsync(fileBuffer: Buffer, document: any) {
     try {
       // Update document status to processing
-      await storage.updateDocument(document.id, { status: "processing" });
+      await dbStorage.updateDocument(document.id, { status: "processing" });
       
       // Create activity for processing start
-      await storage.createActivity({
+      await dbStorage.createActivity({
         userId: document.userId,
         type: document.category,
         details: {
@@ -412,13 +418,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analysisResult = await analyzeDocument(fileBuffer, document.filename, document.category, document);
       
       // Update document with analysis results
-      await storage.updateDocument(document.id, { 
+      await dbStorage.updateDocument(document.id, { 
         status: "completed",
         analysisResult
       });
       
       // Create activity for completed analysis
-      await storage.createActivity({
+      await dbStorage.createActivity({
         userId: document.userId,
         type: document.category,
         details: {
@@ -430,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Create LeXIntuition insight activity
-      await storage.createActivity({
+      await dbStorage.createActivity({
         userId: document.userId,
         type: "lexintuition",
         details: {
@@ -459,10 +465,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error processing document:", error);
       
       // Update document status to failed
-      await storage.updateDocument(document.id, { status: "failed" });
+      await dbStorage.updateDocument(document.id, { status: "failed" });
       
       // Create activity for failed processing
-      await storage.createActivity({
+      await dbStorage.createActivity({
         userId: document.userId,
         type: document.category,
         details: {
@@ -491,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiResponse = generateLeXAssistResponse(userMessage.content, conversation.userId);
       
       // Create AI message
-      const assistantMessage = await storage.createMessage({
+      const assistantMessage = await dbStorage.createMessage({
         conversationId: conversation.id,
         sender: "assistant",
         content: aiResponse.content,
@@ -499,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Update conversation's lastMessageAt
-      await storage.updateConversation(conversation.id, { lastMessageAt: new Date() });
+      await dbStorage.updateConversation(conversation.id, { lastMessageAt: new Date() });
       
       // Broadcast message to user
       broadcastToUser(conversation.userId, {
@@ -512,7 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error generating AI response:", error);
       
       // Create error message
-      const errorMessage = await storage.createMessage({
+      const errorMessage = await dbStorage.createMessage({
         conversationId: conversation.id,
         sender: "assistant",
         content: "I apologize, but I encountered an error processing your request. Please try again."
@@ -534,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Get user's jurisdiction (async in real implementation, synchronous here for simplicity)
     const getUserJurisdiction = () => {
       // Default to USA if unable to determine
-      return storage.getUser(userId)
+      return dbStorage.getUser(userId)
         .then(user => user?.jurisdiction || "USA")
         .catch(() => "USA");
     };

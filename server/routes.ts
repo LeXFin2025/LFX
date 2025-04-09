@@ -22,10 +22,15 @@ const upload = multer({
 const analyzeDocument = async (
   fileBuffer: Buffer, 
   filename: string, 
-  category: string
+  category: string,
+  document: any
 ) => {
   // Simulate AI processing time
   await new Promise(resolve => setTimeout(resolve, 3000));
+  
+  // Get user's jurisdiction from storage
+  const user = await storage.getUser(document.userId);
+  const jurisdiction = user?.jurisdiction || "USA";
   
   // Return analysis result based on document category
   const analysisResult = {
@@ -44,14 +49,44 @@ const analyzeDocument = async (
     ],
     references: [
       {
-        title: category === 'forensic' ? "AICPA Forensic Accounting Standards" : category === 'tax' ? "IRS Publication 535: Business Expenses" : "Legal Compliance Framework 2023",
+        title: (jurisdiction === "IN") 
+          ? (category === 'forensic' 
+              ? "ICAI Forensic Accounting and Investigation Standards (FAIS)" 
+              : category === 'tax' 
+                ? "Income Tax Act, 1961 (as amended)" 
+                : "Indian Contract Act, 1872 & Companies Act, 2013")
+          : (category === 'forensic' 
+              ? "AICPA Forensic Accounting Standards" 
+              : category === 'tax' 
+                ? "IRS Publication 535: Business Expenses" 
+                : "Legal Compliance Framework 2023"),
         url: "#"
       },
       {
-        title: category === 'forensic' ? "Financial Accounting Standards Board (FASB)" : category === 'tax' ? "Tax Cuts and Jobs Act of 2017" : "Recent Supreme Court Decision on Similar Cases",
+        title: (jurisdiction === "IN") 
+          ? (category === 'forensic' 
+              ? "Prevention of Money Laundering Act, 2002" 
+              : category === 'tax' 
+                ? "Goods and Services Tax (GST) Act, 2017" 
+                : "Specific Relief Act, 1963 & Negotiable Instruments Act, 1881")
+          : (category === 'forensic' 
+              ? "Financial Accounting Standards Board (FASB)" 
+              : category === 'tax' 
+                ? "Tax Cuts and Jobs Act of 2017" 
+                : "Recent Supreme Court Decision on Similar Cases"),
+        url: "#"
+      },
+      {
+        title: (jurisdiction === "IN") 
+          ? (category === 'forensic' 
+              ? "Companies (Auditor's Report) Order 2020" 
+              : category === 'tax' 
+                ? "Finance Act, 2023" 
+                : "Information Technology Act, 2000 & Amendments")
+          : null,
         url: "#"
       }
-    ],
+    ].filter(ref => ref.title !== null),
     lexIntuition: {
       predictions: [
         `Based on current trends and regulatory patterns, we predict that ${category === 'forensic' ? 'financial reporting requirements' : category === 'tax' ? 'tax deduction eligibility' : 'legal compliance standards'} in this area will become more stringent over the next 12-18 months.`,
@@ -373,8 +408,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         document: { ...document, status: "processing" }
       });
       
-      // Call AI service to analyze document
-      const analysisResult = await analyzeDocument(fileBuffer, document.filename, document.category);
+      // Call AI service to analyze document with document details
+      const analysisResult = await analyzeDocument(fileBuffer, document.filename, document.category, document);
       
       // Update document with analysis results
       await storage.updateDocument(document.id, { 
@@ -496,33 +531,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function generateLeXAssistResponse(userMessage: string, userId: number) {
     // In a real application, this would call a real AI service like Google's Gemini
     
+    // Get user's jurisdiction (async in real implementation, synchronous here for simplicity)
+    const getUserJurisdiction = () => {
+      // Default to USA if unable to determine
+      return storage.getUser(userId)
+        .then(user => user?.jurisdiction || "USA")
+        .catch(() => "USA");
+    };
+    
+    // Function to get jurisdiction-specific tax information
+    const getTaxResponse = async () => {
+      const jurisdiction = await getUserJurisdiction();
+      
+      if (jurisdiction === "IN") {
+        return {
+          content: `Based on your tax-related question, I can provide guidance according to Indian tax laws. Under the Income Tax Act of 1961 (as amended) and GST Act of 2017, there are several provisions that might be relevant to your situation. The Finance Act of 2023 introduced significant changes to the tax framework, including updates to tax slabs and deduction limits under Section 80C, 80D, and other relevant sections. Would you like me to analyze a specific tax document according to Indian tax regulations?`,
+          reasoning: [
+            { step: "Intent Detection", reasoning: "Identified tax-related query from keywords" },
+            { step: "Jurisdiction Identification", reasoning: "Determined user is in Indian jurisdiction" },
+            { step: "Regulation Application", reasoning: "Applied Income Tax Act, GST Act, and Finance Act 2023 provisions" },
+            { step: "Response Generation", reasoning: "Provided India-specific tax information while requesting document for analysis" }
+          ]
+        };
+      } else {
+        return {
+          content: `Based on your question about taxes, I can provide some general guidance. Tax regulations are complex and jurisdiction-specific, but there are several strategies that might be applicable to your situation. To provide more specific advice, I would need more details about your financial situation, income sources, and applicable jurisdiction. Would you like me to analyze a specific tax document for you?`,
+          reasoning: [
+            { step: "Intent Detection", reasoning: "Identified tax-related query from keywords" },
+            { step: "Jurisdiction Check", reasoning: "Found non-Indian jurisdiction, providing general guidance" },
+            { step: "Response Generation", reasoning: "Provided general tax information while requesting more specific details" }
+          ]
+        };
+      }
+    };
+    
+    // Function to get jurisdiction-specific legal information
+    const getLegalResponse = async () => {
+      const jurisdiction = await getUserJurisdiction();
+      
+      if (jurisdiction === "IN") {
+        return {
+          content: `Regarding your legal question, I should first note that this information is not legal advice. In the Indian legal context, various acts such as the Indian Contract Act (1872), the Companies Act (2013), the Specific Relief Act (1963), and the Information Technology Act (2000) may be relevant depending on your specific situation. The recent amendments to these laws and judgments by the Supreme Court of India have created important precedents. To provide more tailored insights based on Indian law, could you share more details about your specific legal document or situation?`,
+          reasoning: [
+            { step: "Intent Detection", reasoning: "Identified legal-related query from keywords" },
+            { step: "Jurisdiction Identification", reasoning: "Determined user is in Indian jurisdiction" },
+            { step: "Disclaimer Addition", reasoning: "Added legal disclaimer as required for legal discussions" },
+            { step: "Regulation Application", reasoning: "Applied Indian Contract Act, Companies Act, and other relevant legislation" },
+            { step: "Response Generation", reasoning: "Provided India-specific legal information while requesting more context" }
+          ]
+        };
+      } else {
+        return {
+          content: `Regarding your legal question, I should note that this information is not legal advice. Legal matters are highly dependent on jurisdiction and specific circumstances. Based on general legal principles, there are several factors to consider. To provide more tailored insights, could you share more details about the specific legal document or situation you're dealing with?`,
+          reasoning: [
+            { step: "Intent Detection", reasoning: "Identified legal-related query from keywords" },
+            { step: "Jurisdiction Check", reasoning: "Found non-Indian jurisdiction" },
+            { step: "Disclaimer Addition", reasoning: "Added legal disclaimer as required for legal discussions" },
+            { step: "Response Generation", reasoning: "Provided general legal information while requesting more specific context" }
+          ]
+        };
+      }
+    };
+    
     // Detect if message is about tax
     if (userMessage.toLowerCase().includes('tax') || 
         userMessage.toLowerCase().includes('deduction') || 
-        userMessage.toLowerCase().includes('irs')) {
-      return {
-        content: `Based on your question about taxes, I can provide some general guidance. Tax regulations are complex and jurisdiction-specific, but there are several strategies that might be applicable to your situation. To provide more specific advice, I would need more details about your financial situation, income sources, and applicable jurisdiction. Would you like me to analyze a specific tax document for you?`,
-        reasoning: [
-          { step: "Intent Detection", reasoning: "Identified tax-related query from keywords" },
-          { step: "Jurisdiction Check", reasoning: "No specific jurisdiction mentioned, defaulting to general guidance" },
-          { step: "Response Generation", reasoning: "Provided general tax information while requesting more specific details" }
-        ]
-      };
+        userMessage.toLowerCase().includes('irs') ||
+        userMessage.toLowerCase().includes('gst') ||
+        userMessage.toLowerCase().includes('income tax')) {
+      // Return promise resolution in real implementation
+      // Here we're returning the object directly for simplicity
+      return getTaxResponse() as any;
     }
     
     // Detect if message is about legal matters
     else if (userMessage.toLowerCase().includes('legal') || 
              userMessage.toLowerCase().includes('contract') || 
              userMessage.toLowerCase().includes('lawsuit') ||
-             userMessage.toLowerCase().includes('agreement')) {
-      return {
-        content: `Regarding your legal question, I should note that this information is not legal advice. Legal matters are highly dependent on jurisdiction and specific circumstances. Based on general legal principles, there are several factors to consider. To provide more tailored insights, could you share more details about the specific legal document or situation you're dealing with?`,
-        reasoning: [
-          { step: "Intent Detection", reasoning: "Identified legal-related query from keywords" },
-          { step: "Disclaimer Addition", reasoning: "Added legal disclaimer as required for legal discussions" },
-          { step: "Response Generation", reasoning: "Provided general legal information while requesting more specific context" }
-        ]
-      };
+             userMessage.toLowerCase().includes('agreement') ||
+             userMessage.toLowerCase().includes('companies act')) {
+      // Return promise resolution in real implementation
+      // Here we're returning the object directly for simplicity
+      return getLegalResponse() as any;
     }
     
     // Detect if message is about financial audit
@@ -530,26 +620,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
              userMessage.toLowerCase().includes('financial') || 
              userMessage.toLowerCase().includes('fraud') ||
              userMessage.toLowerCase().includes('accounting')) {
-      return {
-        content: `I understand you're inquiring about financial auditing. Forensic audits are detailed examinations aimed at uncovering financial irregularities or fraud. Our AI can analyze financial statements, transaction records, and other documents to identify potential issues. Would you like to upload specific financial documents for analysis, or do you have more specific questions about the forensic audit process?`,
-        reasoning: [
-          { step: "Intent Detection", reasoning: "Identified forensic audit-related query from keywords" },
-          { step: "Context Building", reasoning: "Provided explanation of forensic audit capabilities" },
-          { step: "Response Generation", reasoning: "Explained capabilities and offered document upload option" }
-        ]
+      
+      // Function to get jurisdiction-specific audit information
+      const getAuditResponse = async () => {
+        const jurisdiction = await getUserJurisdiction();
+        
+        if (jurisdiction === "IN") {
+          return {
+            content: `I understand you're inquiring about financial auditing in the Indian context. Forensic audits in India are governed by the Standards on Auditing (SAs) issued by the Institute of Chartered Accountants of India (ICAI), the Companies Act of 2013, and the Prevention of Money Laundering Act of 2002. Under Indian regulations, forensic audits are detailed examinations aimed at uncovering financial irregularities, fraud, or compliance issues with specific Indian accounting standards and tax regulations. Our AI can analyze financial statements, transaction records, GST filings, and other documents to identify potential issues according to Indian laws. Would you like to upload specific financial documents for analysis under Indian regulatory frameworks, or do you have more specific questions about the forensic audit process in India?`,
+            reasoning: [
+              { step: "Intent Detection", reasoning: "Identified forensic audit-related query from keywords" },
+              { step: "Jurisdiction Identification", reasoning: "Determined user is in Indian jurisdiction" },
+              { step: "Regulation Application", reasoning: "Applied ICAI Standards, Companies Act 2013, and PMLA 2002" },
+              { step: "Context Building", reasoning: "Provided explanation of forensic audit capabilities specific to Indian context" },
+              { step: "Response Generation", reasoning: "Explained India-specific capabilities and offered document upload option" }
+            ]
+          };
+        } else {
+          return {
+            content: `I understand you're inquiring about financial auditing. Forensic audits are detailed examinations aimed at uncovering financial irregularities or fraud. Our AI can analyze financial statements, transaction records, and other documents to identify potential issues. Would you like to upload specific financial documents for analysis, or do you have more specific questions about the forensic audit process?`,
+            reasoning: [
+              { step: "Intent Detection", reasoning: "Identified forensic audit-related query from keywords" },
+              { step: "Jurisdiction Check", reasoning: "Found non-Indian jurisdiction" },
+              { step: "Context Building", reasoning: "Provided explanation of forensic audit capabilities" },
+              { step: "Response Generation", reasoning: "Explained capabilities and offered document upload option" }
+            ]
+          };
+        }
       };
+      
+      // Return promise resolution in real implementation
+      // Here we're returning the object directly for simplicity
+      return getAuditResponse() as any;
     }
     
     // General response for other queries
     else {
-      return {
-        content: `Thank you for your question. I'm LeXAssist, your AI-powered legal and financial advisor. I can help with forensic audits, tax optimization, and legal document analysis. To provide you with the most relevant assistance, could you please specify which of these areas you're interested in, or upload a relevant document for analysis?`,
-        reasoning: [
-          { step: "Intent Detection", reasoning: "Could not identify specific intent from query" },
-          { step: "Service Introduction", reasoning: "Introduced available services since intent was unclear" },
-          { step: "Response Generation", reasoning: "Provided general introduction and requested clarification" }
-        ]
+      // Function to get jurisdiction-specific general information
+      const getGeneralResponse = async () => {
+        const jurisdiction = await getUserJurisdiction();
+        
+        if (jurisdiction === "IN") {
+          return {
+            content: `Thank you for your question. I'm LeXAssist, your AI-powered legal and financial advisor with specialized knowledge of Indian laws and regulations. I can help with forensic audits under ICAI standards, tax optimization according to Indian Income Tax Act and GST regulations, and legal document analysis based on Indian legal frameworks. To provide you with the most relevant assistance according to Indian regulations, could you please specify which of these areas you're interested in, or upload a relevant document for analysis?`,
+            reasoning: [
+              { step: "Intent Detection", reasoning: "Could not identify specific intent from query" },
+              { step: "Jurisdiction Identification", reasoning: "Determined user is in Indian jurisdiction" },
+              { step: "Service Introduction", reasoning: "Introduced India-specific services since intent was unclear" },
+              { step: "Response Generation", reasoning: "Provided India-focused introduction and requested clarification" }
+            ]
+          };
+        } else {
+          return {
+            content: `Thank you for your question. I'm LeXAssist, your AI-powered legal and financial advisor. I can help with forensic audits, tax optimization, and legal document analysis. To provide you with the most relevant assistance, could you please specify which of these areas you're interested in, or upload a relevant document for analysis?`,
+            reasoning: [
+              { step: "Intent Detection", reasoning: "Could not identify specific intent from query" },
+              { step: "Jurisdiction Check", reasoning: "Found non-Indian jurisdiction" },
+              { step: "Service Introduction", reasoning: "Introduced available services since intent was unclear" },
+              { step: "Response Generation", reasoning: "Provided general introduction and requested clarification" }
+            ]
+          };
+        }
       };
+      
+      // Return promise resolution in real implementation
+      // Here we're returning the object directly for simplicity
+      return getGeneralResponse() as any;
     }
   }
 

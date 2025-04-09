@@ -282,6 +282,7 @@ const AuthPage = () => {
                                   <option value="UK">United Kingdom</option>
                                   <option value="CA">Canada</option>
                                   <option value="AU">Australia</option>
+                                  <option value="IN">India</option>
                                 </select>
                               </div>
                             </FormControl>

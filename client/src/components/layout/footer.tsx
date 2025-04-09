@@ -16,7 +16,8 @@ const Footer = () => {
     "European Union",
     "United Kingdom",
     "Canada",
-    "Australia"
+    "Australia",
+    "India"
   ];
   
   return (

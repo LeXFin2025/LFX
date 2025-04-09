@@ -209,12 +209,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).send("Invalid document ID");
       
+      console.log(`Fetching document with ID: ${id} for user ${req.user!.id}`);
       const document = await dbStorage.getDocument(id);
-      if (!document) return res.status(404).send("Document not found");
+      
+      if (!document) {
+        console.log(`Document with ID ${id} not found`);
+        return res.status(404).send("Document not found");
+      }
       
       // Check if user owns the document
-      if (document.userId !== req.user!.id) return res.status(403).send("Forbidden");
+      if (document.userId !== req.user!.id) {
+        console.log(`User ${req.user!.id} does not own document ${id}`);
+        return res.status(403).send("Forbidden");
+      }
       
+      console.log(`Returning document ${id} with status: ${document.status}`);
       res.json(document);
     } catch (error) {
       console.error("Error fetching document:", error);

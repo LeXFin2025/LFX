@@ -32,12 +32,27 @@ const DocumentAnalysisPage = () => {
   const [_, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("analysis");
 
-  const { data: document, isLoading } = useQuery<Document>({
+  const { data: document, isLoading, refetch } = useQuery<Document>({
     queryKey: ["/api/documents", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/documents/${id}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch document');
+      }
+      return res.json();
+    },
+    refetchInterval: 5000, // Poll every 5 seconds if the document is still being processed
   });
   
   // Type cast analysis result to the proper type
   const analysisResult = document?.analysisResult as AnalysisResult;
+  
+  // Add a manual refresh button for documents stuck in processing
+  const handleRefresh = () => {
+    if (document) {
+      refetch();
+    }
+  };
 
   const getServiceColor = (category?: string) => {
     switch (category) {
@@ -265,17 +280,23 @@ const DocumentAnalysisPage = () => {
                           <div className="text-center py-12">
                             <Clock className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">Analysis in progress</h3>
-                            <p className="text-gray-500">
+                            <p className="text-gray-500 mb-4">
                               We're analyzing your document. This may take a few minutes depending on the document complexity.
                             </p>
+                            <Button onClick={handleRefresh} variant="outline" size="sm">
+                              Refresh Analysis Status
+                            </Button>
                           </div>
                         ) : (
                           <div className="text-center py-12">
                             <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">Analysis unavailable</h3>
-                            <p className="text-gray-500">
-                              There was an issue processing this document. Please try uploading it again.
+                            <p className="text-gray-500 mb-4">
+                              There was an issue processing this document. Please try refreshing to see if the analysis has completed.
                             </p>
+                            <Button onClick={handleRefresh} variant="outline" size="sm">
+                              Refresh Analysis Status
+                            </Button>
                           </div>
                         )
                       )}

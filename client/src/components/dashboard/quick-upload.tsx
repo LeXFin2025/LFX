@@ -111,11 +111,34 @@ const QuickUpload = () => {
   const handleUpload = () => {
     if (!selectedFile || !user) return;
     
+    // Create a new FormData instance
     const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('category', serviceType);
-    formData.append('userId', user.id.toString());
     
+    // Append the file with the correct field name matching the server's multer config
+    formData.append('file', selectedFile);
+    
+    // Ensure category value is one of the acceptable enum values
+    if (!['forensic', 'tax', 'legal'].includes(serviceType)) {
+      toast({
+        title: "Invalid service type",
+        description: "Please select a valid service type: forensic, tax, or legal",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Add category with the same name expected by the server
+    formData.append('category', serviceType);
+    
+    // Log what we're sending to help with debugging
+    console.log('Uploading document', {
+      filename: selectedFile.name,
+      filesize: selectedFile.size,
+      filetype: selectedFile.type,
+      category: serviceType
+    });
+    
+    // Execute the upload mutation
     uploadMutation.mutate(formData);
   };
 

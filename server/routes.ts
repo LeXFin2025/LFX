@@ -21,7 +21,28 @@ const upload = multer({
   storage: multerStorage,
   limits: {
     fileSize: 25 * 1024 * 1024, // 25MB max file size
-  } 
+  },
+  // Add error handling to multer
+  fileFilter: (req, file, callback) => {
+    const allowedMimeTypes = [
+      'application/pdf', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'image/jpeg',
+      'image/png'
+    ];
+    
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Invalid file type. Expected one of: ${allowedMimeTypes.join(', ')}, but got ${file.mimetype}`));
+    }
+    
+    console.log('Multer file filter check passed:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype
+    });
+  }
 });
 
 // Mock AI service for document analysis
@@ -192,13 +213,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      console.log("Document upload request received:", {
+        body: req.body, 
+        file: req.file ? { 
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        } : 'No file'
+      });
+      
       // Validate request
-      if (!req.file) return res.status(400).send("No file uploaded");
+      if (!req.file) {
+        console.error("Upload failed: No file uploaded");
+        return res.status(400).send("No file uploaded");
+      }
       
       const categorySchema = z.enum(["forensic", "tax", "legal"]);
-      const category = categorySchema.safeParse(req.body.category);
+      const categoryValue = req.body.category;
+      console.log("Category value:", categoryValue);
       
-      if (!category.success) return res.status(400).send("Invalid category");
+      const category = categorySchema.safeParse(categoryValue);
+      
+      if (!category.success) {
+        console.error("Upload failed: Invalid category", { 
+          received: categoryValue, 
+          expected: ["forensic", "tax", "legal"],
+          error: category.error
+        });
+        return res.status(400).send(`Invalid category. Expected 'forensic', 'tax', or 'legal', but got '${categoryValue}'`);
+      }
       
       // Create document record
       const document = await dbStorage.createDocument({
@@ -206,6 +249,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filename: req.file.originalname,
         category: category.data,
       });
+      
+      console.log("Document record created successfully:", document);
       
       // Create activity record for upload
       await dbStorage.createActivity({
@@ -222,10 +267,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process the document asynchronously
       processDocumentAsync(req.file.buffer, document);
       
+      console.log("Document upload completed successfully, document ID:", document.id);
       res.status(201).json(document);
     } catch (error) {
       console.error("Error uploading document:", error);
-      res.status(500).send("Error uploading document");
+      res.status(500).send("Error uploading document: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   });
 

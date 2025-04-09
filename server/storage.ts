@@ -91,7 +91,14 @@ export class MemStorage implements IStorage {
 
   async createUser(user: InsertUser): Promise<User> {
     const id = this.userId++;
-    const newUser: User = { ...user, id };
+    const newUser: User = { 
+      ...user, 
+      id,
+      // Ensure required fields have defaults
+      firstName: user.firstName || null,
+      lastName: user.lastName || null,
+      jurisdiction: user.jurisdiction || null
+    };
     this.users.set(id, newUser);
     return newUser;
   }
@@ -113,7 +120,8 @@ export class MemStorage implements IStorage {
       ...document,
       id,
       uploadDate: new Date(),
-      status: "pending"
+      status: "pending",
+      analysisResult: null // Initialize with null to match schema requirement
     };
     this.documents.set(id, newDocument);
     return newDocument;
@@ -147,7 +155,10 @@ export class MemStorage implements IStorage {
     const newActivity: Activity = {
       ...activity,
       id,
-      timestamp: new Date()
+      timestamp: new Date(),
+      // Ensure required fields have defaults
+      details: activity.details || {},
+      relatedDocumentId: activity.relatedDocumentId || null
     };
     this.activities.set(id, newActivity);
     return newActivity;
@@ -205,7 +216,9 @@ export class MemStorage implements IStorage {
     const newMessage: Message = {
       ...message,
       id,
-      timestamp: new Date()
+      timestamp: new Date(),
+      // Ensure reasoningLog has a default value
+      reasoningLog: message.reasoningLog || {}
     };
     this.messages.set(id, newMessage);
     return newMessage;

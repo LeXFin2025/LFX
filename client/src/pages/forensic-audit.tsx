@@ -16,8 +16,14 @@ import { format } from "date-fns";
 const ForensicAuditPage = () => {
   const [activeTab, setActiveTab] = useState("all");
   
+  // Fetch documents with explicit category parameter for forensic category
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents", "forensic"],
+    queryKey: ["/api/documents", { category: "forensic" }],
+    queryFn: async () => {
+      const response = await fetch('/api/documents?category=forensic');
+      if (!response.ok) throw new Error('Failed to fetch forensic documents');
+      return response.json();
+    }
   });
   
   const filteredDocuments = documents?.filter(doc => {

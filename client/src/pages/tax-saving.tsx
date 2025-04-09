@@ -16,8 +16,14 @@ import { format } from "date-fns";
 const TaxSavingPage = () => {
   const [activeTab, setActiveTab] = useState("all");
   
+  // Fetch documents with explicit category parameter for tax category
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents", "tax"],
+    queryKey: ["/api/documents", { category: "tax" }],
+    queryFn: async () => {
+      const response = await fetch('/api/documents?category=tax');
+      if (!response.ok) throw new Error('Failed to fetch tax documents');
+      return response.json();
+    }
   });
   
   const filteredDocuments = documents?.filter(doc => {

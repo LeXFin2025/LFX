@@ -26,8 +26,14 @@ import { format } from "date-fns";
 const LegalServicesPage = () => {
   const [activeTab, setActiveTab] = useState("all");
   
+  // Fetch documents with explicit category parameter for legal category
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents", "legal"],
+    queryKey: ["/api/documents", { category: "legal" }],
+    queryFn: async () => {
+      const response = await fetch('/api/documents?category=legal');
+      if (!response.ok) throw new Error('Failed to fetch legal documents');
+      return response.json();
+    }
   });
   
   const filteredDocuments = documents?.filter(doc => {

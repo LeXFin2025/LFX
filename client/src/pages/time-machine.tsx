@@ -1,306 +1,719 @@
-import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2, ChevronRight, BarChart3, Clock, CalendarClock, ArrowRight, ChevronsRight, Scale, Zap } from "lucide-react";
+import { useState, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import Header from "@/components/layout/header";
+import Footer from "@/components/layout/footer";
+import AIAssistantBubble from "@/components/common/ai-assistant-bubble";
+import { 
+  Clock, 
+  Calendar, 
+  ArrowUpRight, 
+  Ban,
+  User,
+  FileText,
+  Check,
+  AlertTriangle,
+  Upload,
+  File
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { Document } from "@shared/schema";
+
+// Define the prediction interface
+interface TimeMachinePrediction {
+  title: string;
+  description: string;
+  riskScore: number;
+  impact: string;
+  timeframe: string;
+}
+
+interface TimeMachineResponse {
+  predictions: TimeMachinePrediction[];
+  analysisContext: string;
+  confidenceScore: number;
+}
 
 const TimeMachine = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedTimeline, setSelectedTimeline] = useState("6");
-  const [selectedDocument, setSelectedDocument] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [documentType, setDocumentType] = useState<string>("tax");
+  const [timeframe, setTimeframe] = useState<string>("12-months");
+  const [showLoading, setShowLoading] = useState<boolean>(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
-  // Get user's documents
-  const { data: documents = [], isLoading: isLoadingDocuments } = useQuery<any[]>({
+  // Fetch user's documents
+  const { data: documents, isLoading: isLoadingDocuments } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
-    enabled: !!user,
-  });
-
-  // Fetch time machine predictions when a document is selected
-  const { data: predictions, isLoading: isLoadingPredictions } = useQuery({
-    queryKey: ["/api/time-machine", selectedDocument, selectedTimeline],
-    enabled: !!selectedDocument,
-  });
-
-  // Generate simulated predictions since this is a demo
-  const simulatedPredictions = {
-    "legal": [
-      {
-        title: "Contract Clause Vulnerability",
-        description: "Non-compete clause in Section 4.2 has 67% probability of becoming unenforceable due to pending labor law amendments expected in Q3 2025.",
-        riskScore: 67,
-        impact: "High",
-        timeframe: "Q3 2025"
-      },
-      {
-        title: "Arbitration Provision Risk",
-        description: "Current arbitration provisions likely to be challenged under emerging precedent from Supreme Court case Mehta v. Infotech Ltd (hearing scheduled June 2025).",
-        riskScore: 78,
-        impact: "Critical",
-        timeframe: "Q4 2025"
-      },
-      {
-        title: "Data Protection Compliance Gap",
-        description: "Privacy provisions will be inadequate under upcoming DPDP Act compliance requirements (final implementation date January 2026).",
-        riskScore: 91,
-        impact: "Critical",
-        timeframe: "Q1 2026"
-      }
-    ],
-    "tax": [
-      {
-        title: "Deduction Disallowance Risk",
-        description: "Home office deduction approach has 58% probability of disallowance under new digital worker tax guidelines being drafted (implementation expected July 2025).",
-        riskScore: 58,
-        impact: "Medium",
-        timeframe: "Q3 2025"
-      },
-      {
-        title: "Documentation Inadequacy",
-        description: "Current expense documentation standards will fall below threshold requirements in proposed GST amendment bill (83% chance of implementation by April 2026).",
-        riskScore: 83,
-        impact: "High",
-        timeframe: "Q2 2026"
-      },
-      {
-        title: "Tax Regime Optimization Gap",
-        description: "Your tax structure will be 22% less efficient under new regime expected in Budget 2026. Restructuring opportunity identified with ₹3.2 lakh potential savings.",
-        riskScore: 95,
-        impact: "High",
-        timeframe: "Q1 2026"
-      }
-    ],
-    "forensic": [
-      {
-        title: "Internal Control Framework Obsolescence",
-        description: "Current approval workflows will be insufficient under upcoming RBI circular on related party transactions (draft already in circulation).",
-        riskScore: 74,
-        impact: "High",
-        timeframe: "Q4 2025"
-      },
-      {
-        title: "Fraud Detection Capability Gap",
-        description: "Transaction monitoring protocols will miss 43% of emerging fraud patterns based on simulation against financial crime trends predicted for 2026.",
-        riskScore: 77,
-        impact: "Critical",
-        timeframe: "Q2 2026"
-      },
-      {
-        title: "Regulatory Reporting Risk",
-        description: "Current financial statement preparation methodology has 62% chance of triggering additional scrutiny under proposed annual reporting requirements.",
-        riskScore: 62,
-        impact: "Medium",
-        timeframe: "Q1 2026"
-      }
-    ]
-  };
-
-  const handleDocumentSelect = (docId: number) => {
-    setSelectedDocument(docId);
-    // Show loading toast
-    toast({
-      title: "Analyzing document",
-      description: "LeXTime Machine™ is analyzing your document's future risks...",
-    });
-    
-    // Simulate loading
-    setTimeout(() => {
-      toast({
-        title: "Analysis complete",
-        description: "LeXTime Machine™ has projected your document's future risks across 6, 12, and 24 month timelines.",
-      });
-    }, 3000);
-  };
-
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case "Critical": return "text-red-500 font-bold";
-      case "High": return "text-amber-500 font-bold";
-      case "Medium": return "text-yellow-500 font-bold";
-      case "Low": return "text-green-500 font-bold";
-      default: return "";
+    queryFn: async () => {
+      const response = await fetch('/api/documents');
+      if (!response.ok) throw new Error('Failed to fetch documents');
+      return response.json();
     }
+  });
+  
+  // Upload document mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to upload document');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document uploaded successfully",
+        description: "Your document has been uploaded and is ready for time machine analysis.",
+      });
+      setSelectedFile(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Fetch predictions based on selections
+  const { data: predictions, isLoading, refetch } = useQuery<TimeMachineResponse>({
+    queryKey: ["/api/time-machine", documentType, timeframe],
+    queryFn: async () => {
+      // Simulate loading
+      setShowLoading(true);
+      
+      // Give a realistic feeling of processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const response = await fetch(`/api/time-machine?documentType=${documentType}&timeframe=${timeframe}`);
+      if (!response.ok) throw new Error('Failed to fetch predictions');
+      
+      setShowLoading(false);
+      return response.json();
+    },
+    enabled: false, // Don't fetch automatically
+  });
+  
+  const handleDocumentTypeSelect = (value: string) => {
+    setDocumentType(value);
   };
-
-  const getRiskColor = (score: number) => {
-    if (score >= 80) return "bg-red-500";
-    if (score >= 60) return "bg-amber-500";
-    if (score >= 40) return "bg-yellow-500";
-    return "bg-green-500";
+  
+  const handleTimeframeSelect = (value: string) => {
+    setTimeframe(value);
   };
-
-  // Determine document category
-  const getDocumentCategory = (document: any) => {
-    return document.category || "unknown";
+  
+  const handleGeneratePredictions = () => {
+    refetch();
   };
-
-  // Get predictions for the selected document category
-  const getPredictions = () => {
-    if (!selectedDocument || !documents) return [];
-    const doc = documents.find((d: any) => d.id === selectedDocument);
-    if (!doc) return [];
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setSelectedFile(file);
+  };
+  
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleUploadSubmit = () => {
+    if (!selectedFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    const category = getDocumentCategory(doc);
-    return simulatedPredictions[category as keyof typeof simulatedPredictions] || [];
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('category', documentType);
+    formData.append('description', `Time Machine analysis document - ${documentType} category`);
+    
+    uploadMutation.mutate(formData);
   };
-
+  
+  // Function to get risk color based on score
+  const getRiskColor = (score: number) => {
+    if (score >= 75) return "text-red-600";
+    if (score >= 50) return "text-orange-500";
+    if (score >= 25) return "text-yellow-500";
+    return "text-green-500";
+  };
+  
+  // Function to get risk bg color based on score
+  const getRiskBgColor = (score: number) => {
+    if (score >= 75) return "bg-red-100";
+    if (score >= 50) return "bg-orange-100";
+    if (score >= 25) return "bg-yellow-100";
+    return "bg-green-100";
+  };
+  
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">LeXTime Machine™</h1>
-          <Badge variant="outline" className="ml-4 border-primary">BETA</Badge>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Your Documents</CardTitle>
-              <CardDescription>
-                Select a document to analyze its future risks
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {isLoadingDocuments ? (
-                <div className="flex justify-center p-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : documents && documents.length > 0 ? (
-                <div className="divide-y">
-                  {documents.map((doc: any) => (
-                    <div 
-                      key={doc.id}
-                      className={`flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors ${selectedDocument === doc.id ? 'bg-muted' : ''}`}
-                      onClick={() => handleDocumentSelect(doc.id)}
-                    >
-                      <div className="flex items-center">
-                        <div className="bg-primary/10 rounded-full p-2">
-                          {doc.category === 'legal' && <Scale className="h-4 w-4 text-primary" />}
-                          {doc.category === 'tax' && <BarChart3 className="h-4 w-4 text-primary" />}
-                          {doc.category === 'forensic' && <Zap className="h-4 w-4 text-primary" />}
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm font-medium truncate max-w-[200px]">{doc.filename}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{doc.category} Document</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 text-center">
-                  <p className="text-sm text-muted-foreground">No documents found</p>
-                  <Button variant="outline" className="mt-2" onClick={() => window.location.href = '/dashboard'}>
-                    Upload Documents
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Future Risk Projection</CardTitle>
-              <CardDescription>
-                AI-powered simulation of legal, financial, and regulatory risks
-              </CardDescription>
-              <div className="flex space-x-1 mt-2">
-                <Button
-                  variant={selectedTimeline === "6" ? "default" : "outline"}
-                  className="text-xs flex items-center gap-1"
-                  onClick={() => setSelectedTimeline("6")}
-                >
-                  <Clock className="h-3 w-3" />
-                  6 Months
-                </Button>
-                <Button
-                  variant={selectedTimeline === "12" ? "default" : "outline"}
-                  className="text-xs flex items-center gap-1"
-                  onClick={() => setSelectedTimeline("12")}
-                >
-                  <CalendarClock className="h-3 w-3" />
-                  12 Months
-                </Button>
-                <Button
-                  variant={selectedTimeline === "24" ? "default" : "outline"}
-                  className="text-xs flex items-center gap-1"
-                  onClick={() => setSelectedTimeline("24")}
-                >
-                  <ChevronsRight className="h-3 w-3" />
-                  24 Months
-                </Button>
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      
+      <main className="flex-grow">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <div className="h-12 w-12 bg-primary-50 rounded-full flex items-center justify-center text-primary mr-4">
+                <Clock className="h-6 w-6" />
               </div>
-            </CardHeader>
-            <CardContent>
-              {!selectedDocument ? (
-                <div className="flex flex-col items-center justify-center p-12 bg-muted/30 rounded-lg border border-dashed text-center">
-                  <div className="bg-primary/10 rounded-full p-3 mb-3">
-                    <Clock className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Select a document to analyze</h3>
-                  <p className="text-sm text-muted-foreground max-w-md mb-4">
-                    LeXTime Machine™ will predict future legal, financial, and regulatory risks for your selected document.
-                  </p>
-                </div>
-              ) : isLoadingPredictions ? (
-                <div className="flex flex-col items-center justify-center p-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                  <p className="text-sm text-muted-foreground">Analyzing document...</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {getPredictions().map((prediction, index) => (
-                    <div key={index} className="bg-muted/30 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-medium">{prediction.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">{prediction.description}</p>
-                        </div>
-                        <Badge className={`${getImpactColor(prediction.impact)} bg-transparent border border-current`}>
-                          {prediction.impact} Impact
-                        </Badge>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-full">
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>Risk Probability</span>
-                            <span className="font-medium">{prediction.riskScore}%</span>
-                          </div>
-                          <Progress value={prediction.riskScore} className={getRiskColor(prediction.riskScore)} />
-                        </div>
-                        <Badge variant="secondary" className="whitespace-nowrap">
-                          {prediction.timeframe}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+              <div>
+                <h1 className="text-2xl font-serif font-bold text-gray-900">LeXTime Machine™</h1>
+                <p className="text-gray-600">Predict future legal and financial risks with AI-powered simulation</p>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <div className="mb-6">
+                <h2 className="text-lg font-medium mb-4">Upload Document for Analysis</h2>
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                  />
                   
-                  {getPredictions().length === 0 && (
-                    <div className="text-center p-6">
-                      <p className="text-sm text-muted-foreground">No predictions available for this document type</p>
+                  {!selectedFile ? (
+                    <div>
+                      <Upload className="mx-auto h-10 w-10 text-gray-400 mb-3" />
+                      <h3 className="text-base font-medium text-gray-900 mb-1">Upload a document</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Upload a tax, legal, or forensic document for time machine analysis
+                      </p>
+                      <Button onClick={handleUploadClick}>
+                        Select File
+                      </Button>
+                    </div>
+                  ) : (
+                    <div>
+                      <File className="mx-auto h-10 w-10 text-primary mb-3" />
+                      <h3 className="text-base font-medium text-gray-900 mb-1">{selectedFile.name}</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        {(selectedFile.size / 1024).toFixed(2)} KB • {selectedFile.type || "Unknown type"}
+                      </p>
+                      <div className="flex items-center justify-center space-x-3">
+                        <Button variant="outline" onClick={handleUploadClick}>
+                          Change File
+                        </Button>
+                        <Button 
+                          onClick={handleUploadSubmit} 
+                          disabled={uploadMutation.isPending}
+                        >
+                          {uploadMutation.isPending ? "Uploading..." : "Upload Document"}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
-            </CardContent>
-            {selectedDocument && getPredictions().length > 0 && (
-              <CardFooter>
-                <Button className="w-full">
-                  Generate Comprehensive Risk Mitigation Plan
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
+                
+                {documents && documents.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium mb-2">Your Documents</h3>
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+                      <ul className="divide-y divide-gray-100">
+                        {documents.map((doc) => (
+                          <li key={doc.id} className="py-2 px-1 flex items-center">
+                            <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm">{doc.filename}</span>
+                            <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700">
+                              {doc.category}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <h2 className="text-lg font-medium mb-4">Simulate Future Risk Exposure</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Document Type
+                  </label>
+                  <Select onValueChange={handleDocumentTypeSelect} defaultValue="tax">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tax">Tax Documents</SelectItem>
+                      <SelectItem value="legal">Legal Documents</SelectItem>
+                      <SelectItem value="forensic">Forensic Documents</SelectItem>
+                      <SelectItem value="general">General Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Prediction Timeframe
+                  </label>
+                  <Select onValueChange={handleTimeframeSelect} defaultValue="12-months">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="6-months">6 Months</SelectItem>
+                      <SelectItem value="12-months">12 Months</SelectItem>
+                      <SelectItem value="24-months">24 Months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <Button onClick={handleGeneratePredictions} className="w-full">
+                Generate Risk Predictions
+              </Button>
+              
+              <div className="mt-4 text-center text-sm text-gray-500">
+                Risk predictions are based on current regulatory trends and legislative patterns in Indian jurisdiction
+              </div>
+            </div>
+          </div>
+          
+          {showLoading && (
+            <div className="py-20 text-center">
+              <Clock className="h-12 w-12 mx-auto text-primary animate-pulse mb-4" />
+              <h3 className="text-lg font-medium mb-2">Generating risk predictions</h3>
+              <p className="text-gray-500 max-w-md mx-auto mb-6">
+                LeXTime Machine™ is analyzing legal and financial data to project future risks.
+                This may take a moment...
+              </p>
+              <Progress value={65} className="w-64 mx-auto" />
+            </div>
+          )}
+          
+          {predictions && !showLoading && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-serif font-semibold text-gray-900">Risk Predictions</h2>
+                <div className="flex items-center text-sm">
+                  <span className="text-gray-500 mr-2">Confidence score:</span>
+                  <span className="font-medium">{predictions.confidenceScore}%</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {predictions.predictions.slice(0, 3).map((prediction, index) => (
+                  <Card key={index} className={`${getRiskBgColor(prediction.riskScore)} border-0`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg font-medium">{prediction.title}</CardTitle>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(prediction.riskScore)}`}>
+                          {prediction.riskScore}% Risk
+                        </div>
+                      </div>
+                      <CardDescription className="mt-1">
+                        Expected in {prediction.timeframe}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm mb-4">{prediction.description}</p>
+                      <div className="bg-white rounded-md p-3 text-xs border border-gray-200">
+                        <h4 className="font-medium mb-1">Potential Impact:</h4>
+                        <p>{prediction.impact}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                {predictions.predictions.slice(3, 5).map((prediction, index) => (
+                  <Card key={index} className={`${getRiskBgColor(prediction.riskScore)} border-0`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg font-medium">{prediction.title}</CardTitle>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(prediction.riskScore)}`}>
+                          {prediction.riskScore}% Risk
+                        </div>
+                      </div>
+                      <CardDescription className="mt-1">
+                        Expected in {prediction.timeframe}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm mb-4">{prediction.description}</p>
+                      <div className="bg-white rounded-md p-3 text-xs border border-gray-200">
+                        <h4 className="font-medium mb-1">Potential Impact:</h4>
+                        <p>{prediction.impact}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Analysis Context</CardTitle>
+                  <CardDescription>
+                    How these predictions were generated
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 whitespace-pre-line">{predictions.analysisContext}</p>
+                </CardContent>
+              </Card>
+              
+              <Tabs defaultValue="timeline">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="timeline">Risk Timeline</TabsTrigger>
+                  <TabsTrigger value="actions">Recommended Actions</TabsTrigger>
+                  <TabsTrigger value="preview">Document Preview</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="timeline">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="relative">
+                        <div className="absolute left-0 top-0 w-0.5 h-full bg-gray-200"></div>
+                        
+                        {predictions.predictions
+                          .sort((a, b) => {
+                            const aMonths = parseInt(a.timeframe.split('-')[0]);
+                            const bMonths = parseInt(b.timeframe.split('-')[0]);
+                            return aMonths - bMonths;
+                          })
+                          .map((prediction, index) => (
+                            <div key={index} className="relative pl-8 pb-8">
+                              <div className={`absolute left-0 w-3 h-3 rounded-full ${getRiskBgColor(prediction.riskScore)} border-2 border-white ring-2 ring-primary`}></div>
+                              <div className="flex items-start">
+                                <Calendar className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+                                <span className="text-sm text-gray-500 font-medium">{prediction.timeframe}</span>
+                              </div>
+                              <h3 className="text-base font-medium mt-1">{prediction.title}</h3>
+                              <p className="text-sm text-gray-600 mt-1">{prediction.impact}</p>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="actions">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="space-y-4">
+                        {predictions.predictions.map((prediction, index) => (
+                          <div key={index} className="pb-4 border-b last:border-b-0 last:pb-0">
+                            <div className="flex items-start">
+                              <ArrowUpRight className={`h-5 w-5 ${getRiskColor(prediction.riskScore)} mr-2 mt-0.5`} />
+                              <div>
+                                <h3 className="text-base font-medium">{prediction.title}</h3>
+                                <p className="text-sm text-gray-600 mt-1 mb-2">
+                                  Recommended actions to mitigate this {prediction.riskScore}% risk:
+                                </p>
+                                <ul className="space-y-2">
+                                  <li className="flex items-start text-sm">
+                                    <FileText className="h-4 w-4 text-primary mr-2 mt-0.5" />
+                                    <span>Review and update documentation with specific provisions for {prediction.title.toLowerCase()}</span>
+                                  </li>
+                                  <li className="flex items-start text-sm">
+                                    <User className="h-4 w-4 text-primary mr-2 mt-0.5" />
+                                    <span>Consult with a specialized {prediction.title.includes("Tax") ? "tax advisor" : "legal counsel"} about preemptive measures</span>
+                                  </li>
+                                  <li className="flex items-start text-sm">
+                                    <Ban className="h-4 w-4 text-primary mr-2 mt-0.5" />
+                                    <span>Implement specific risk mitigation protocols by {prediction.timeframe.split('-')[0]} months from now</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="preview">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Document Sample Analysis</CardTitle>
+                      <CardDescription>
+                        Preview of document type used for analysis
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="aspect-[3/4] bg-white rounded-md flex flex-col border overflow-hidden">
+                        <div className="p-6">
+                          {documentType === "tax" && (
+                            <div className="space-y-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">TAX ANALYSIS REPORT</h3>
+                                <p className="text-gray-500 text-sm">Assessment Year 2024-25</p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Tax Structure Analysis</h4>
+                                <p className="text-sm text-gray-600">
+                                  The current tax structure utilizes Section 80D health insurance deductions and accelerated 
+                                  depreciation benefits that may be affected by upcoming regulatory changes. The analysis 
+                                  indicates several areas of potential optimization and risk mitigation.
+                                </p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Key Financial Indicators</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Gross Total Income</p>
+                                    <p className="text-lg">₹18,75,000</p>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Deductions Claimed</p>
+                                    <p className="text-lg">₹1,50,000</p>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Total Tax Liability</p>
+                                    <p className="text-lg">₹3,43,200</p>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Effective Tax Rate</p>
+                                    <p className="text-lg">18.3%</p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Regulatory Compliance Status</h4>
+                                <ul className="space-y-2">
+                                  <li className="flex items-start">
+                                    <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                                    <span className="text-sm">TDS Compliance: Complete</span>
+                                  </li>
+                                  <li className="flex items-start">
+                                    <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                                    <span className="text-sm">GST Filing Status: Up to date</span>
+                                  </li>
+                                  <li className="flex items-start">
+                                    <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2 mt-0.5" />
+                                    <span className="text-sm">DTAA Benefits: Requires review</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {documentType === "legal" && (
+                            <div className="space-y-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">LEGAL CONTRACT ANALYSIS</h3>
+                                <p className="text-gray-500 text-sm">Service Agreement Review</p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Contract Structure Analysis</h4>
+                                <p className="text-sm text-gray-600">
+                                  This service agreement contains standard provisions for services delivery, payment terms, 
+                                  and termination conditions. Several clauses require modernization to align with emerging 
+                                  digital contract standards and recent judicial interpretations.
+                                </p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Key Clause Assessment</h4>
+                                <div className="space-y-2">
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Force Majeure (Section 14)</p>
+                                    <p className="text-sm text-gray-600">
+                                      Current clause uses generalized language lacking specific reference to pandemic, 
+                                      cyber incidents, and regulatory intervention events.
+                                    </p>
+                                    <div className="flex items-center mt-1">
+                                      <AlertTriangle className="h-4 w-4 text-yellow-500 mr-1" />
+                                      <span className="text-xs text-yellow-700">Requires update</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Data Protection (Section 8)</p>
+                                    <p className="text-sm text-gray-600">
+                                      Limited provisions focused on confidentiality without addressing data localization, 
+                                      processing limitations, or subject rights.
+                                    </p>
+                                    <div className="flex items-center mt-1">
+                                      <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
+                                      <span className="text-xs text-red-700">High risk area</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Dispute Resolution (Section 22)</p>
+                                    <p className="text-sm text-gray-600">
+                                      Arbitration clause with outdated procedural references and non-specific venue selection.
+                                    </p>
+                                    <div className="flex items-center mt-1">
+                                      <AlertTriangle className="h-4 w-4 text-yellow-500 mr-1" />
+                                      <span className="text-xs text-yellow-700">Requires update</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {documentType === "forensic" && (
+                            <div className="space-y-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">FORENSIC AUDIT REPORT</h3>
+                                <p className="text-gray-500 text-sm">Financial Transaction Analysis</p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Transaction Monitoring Analysis</h4>
+                                <p className="text-sm text-gray-600">
+                                  The current transaction monitoring system employs standard threshold-based alerts with 
+                                  limited pattern detection capabilities. Several transactions fall within the monitoring 
+                                  gaps that could be affected by upcoming regulatory changes.
+                                </p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Key Risk Indicators</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Unusual Transaction Rate</p>
+                                    <p className="text-lg">2.8%</p>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Documentation Gaps</p>
+                                    <p className="text-lg">4.5%</p>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Control Effectiveness</p>
+                                    <p className="text-lg">82%</p>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Cross-Border Volume</p>
+                                    <p className="text-lg">₹2.4 Cr</p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Compliance Vulnerability Assessment</h4>
+                                <ul className="space-y-2">
+                                  <li className="flex items-start">
+                                    <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2 mt-0.5" />
+                                    <span className="text-sm">Beneficial ownership verification: Partial compliance</span>
+                                  </li>
+                                  <li className="flex items-start">
+                                    <AlertTriangle className="h-4 w-4 text-red-500 mr-2 mt-0.5" />
+                                    <span className="text-sm">Cross-border transaction monitoring: Requires enhancement</span>
+                                  </li>
+                                  <li className="flex items-start">
+                                    <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                                    <span className="text-sm">Domestic transaction documentation: Compliant</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {documentType === "general" && (
+                            <div className="space-y-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">BUSINESS OPERATIONS ANALYSIS</h3>
+                                <p className="text-gray-500 text-sm">Corporate Governance Review</p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Governance Structure Analysis</h4>
+                                <p className="text-sm text-gray-600">
+                                  The current corporate governance framework meets basic regulatory requirements but lacks 
+                                  several components that are likely to become mandatory under upcoming Ministry of Corporate 
+                                  Affairs guidelines and SEBI regulations.
+                                </p>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Compliance Status Overview</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Board Composition</p>
+                                    <div className="flex items-center mt-1">
+                                      <Check className="h-4 w-4 text-green-500 mr-1" />
+                                      <span className="text-xs">Compliant</span>
+                                    </div>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">ESG Reporting</p>
+                                    <div className="flex items-center mt-1">
+                                      <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
+                                      <span className="text-xs">Significant gaps</span>
+                                    </div>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Cybersecurity Framework</p>
+                                    <div className="flex items-center mt-1">
+                                      <AlertTriangle className="h-4 w-4 text-yellow-500 mr-1" />
+                                      <span className="text-xs">Partial compliance</span>
+                                    </div>
+                                  </div>
+                                  <div className="border rounded p-3">
+                                    <p className="text-sm font-medium">Labor Code Readiness</p>
+                                    <div className="flex items-center mt-1">
+                                      <AlertTriangle className="h-4 w-4 text-yellow-500 mr-1" />
+                                      <span className="text-xs">Requires update</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-lg">Risk Exposure Summary</h4>
+                                <p className="text-sm text-gray-600">
+                                  The organization maintains moderate compliance with current regulations but faces 
+                                  significant exposure to upcoming regulatory changes, particularly in digital 
+                                  governance, ESG disclosure, and labor code implementation areas.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+          
+          {!predictions && !showLoading && (
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-6 text-center">
+              <Clock className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Generate predictions to begin</h3>
+              <p className="text-gray-500 max-w-md mx-auto">
+                Select a document type and timeframe, then click the "Generate Risk Predictions" button above to
+                see LeXTime Machine™ predictions about future legal and financial risks.
+              </p>
+            </div>
+          )}
         </div>
-
+        
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>About LeXTime Machine™</CardTitle>
@@ -350,7 +763,10 @@ const TimeMachine = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
+
+      <Footer />
+      <AIAssistantBubble />
     </div>
   );
 };

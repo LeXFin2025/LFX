@@ -30,6 +30,33 @@ export type DocumentStatus = z.infer<typeof DocumentStatusEnum>;
 export const ServiceCategoryEnum = z.enum(["forensic", "tax", "legal"]);
 export type ServiceCategory = z.infer<typeof ServiceCategoryEnum>;
 
+// Document analysis result type
+export const AnalysisResultSchema = z.object({
+  analysis: z.array(z.string()).optional(),
+  recommendations: z.array(z.string()).optional(),
+  references: z.array(z.object({
+    title: z.string(),
+    url: z.string().optional()
+  })).optional(),
+  lexIntuition: z.object({
+    predictions: z.array(z.string()).optional(),
+    risks: z.array(z.object({
+      title: z.string(),
+      description: z.string()
+    })).optional(),
+    opportunities: z.array(z.object({
+      title: z.string(),
+      description: z.string()
+    })).optional()
+  }).optional(),
+  reasoningLog: z.array(z.object({
+    step: z.string(),
+    reasoning: z.string()
+  })).optional()
+}).optional();
+
+export type AnalysisResult = z.infer<typeof AnalysisResultSchema>;
+
 // Documents table
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),

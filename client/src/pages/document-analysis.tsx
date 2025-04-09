@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Document } from "@shared/schema";
+import { Document, AnalysisResult } from "@shared/schema";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import AIAssistantBubble from "@/components/common/ai-assistant-bubble";
@@ -23,7 +23,7 @@ import {
   Link2
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,9 @@ const DocumentAnalysisPage = () => {
   const { data: document, isLoading } = useQuery<Document>({
     queryKey: ["/api/documents", id],
   });
+  
+  // Type cast analysis result to the proper type
+  const analysisResult = document?.analysisResult as AnalysisResult;
 
   const getServiceColor = (category?: string) => {
     switch (category) {
@@ -168,7 +171,7 @@ const DocumentAnalysisPage = () => {
                     <div>
                       <h1 className="text-2xl font-serif font-bold text-gray-900">{document.filename}</h1>
                       <div className="flex items-center mt-1 text-sm text-gray-500">
-                        <span>Uploaded {format(new Date(document.uploadDate), "MMMM d, yyyy 'at' h:mm a")}</span>
+                        <span>Uploaded {document.uploadDate ? format(parseISO(document.uploadDate.toString()), "MMMM d, yyyy 'at' h:mm a") : 'Recently'}</span>
                         <span className="mx-2">•</span>
                         <StatusBadge status={document.status} />
                       </div>
@@ -195,12 +198,12 @@ const DocumentAnalysisPage = () => {
                     </CardHeader>
                     <CardContent>
                       <TabsContent value="analysis" className="mt-0">
-                        {document.status === "completed" && document.analysisResult ? (
+                        {document.status === "completed" && analysisResult ? (
                           <div className="space-y-6">
                             <div>
                               <h2 className="text-xl font-medium mb-4">{getServiceTitle(document.category)}</h2>
                               <div className="prose max-w-none">
-                                {document.analysisResult.analysis?.map((paragraph: string, index: number) => (
+                                {analysisResult.analysis?.map((paragraph: string, index: number) => (
                                   <p key={index} className="mb-4">{paragraph}</p>
                                 )) || (
                                   <p>No analysis data available. Please try processing the document again.</p>
@@ -208,11 +211,11 @@ const DocumentAnalysisPage = () => {
                               </div>
                             </div>
 
-                            {document.analysisResult.recommendations && (
+                            {analysisResult.recommendations && (
                               <div>
                                 <h3 className="text-lg font-medium mb-3">Recommendations</h3>
                                 <ul className="space-y-2">
-                                  {document.analysisResult.recommendations.map((recommendation: string, index: number) => (
+                                  {analysisResult.recommendations.map((recommendation: string, index: number) => (
                                     <li key={index} className="flex">
                                       <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                                       <span>{recommendation}</span>
@@ -222,11 +225,11 @@ const DocumentAnalysisPage = () => {
                               </div>
                             )}
 
-                            {document.analysisResult.references && (
+                            {analysisResult.references && (
                               <div>
                                 <h3 className="text-lg font-medium mb-3">Legal & Financial References</h3>
                                 <ul className="space-y-2">
-                                  {document.analysisResult.references.map((reference: {title: string, url: string}, index: number) => (
+                                  {analysisResult.references.map((reference: {title: string, url?: string}, index: number) => (
                                     <li key={index} className="flex items-start">
                                       <Link2 className="h-5 w-5 text-primary mr-2 flex-shrink-0 mt-0.5" />
                                       <div>
@@ -278,12 +281,12 @@ const DocumentAnalysisPage = () => {
                           </p>
                         </div>
 
-                        {document.status === "completed" && document.analysisResult?.lexIntuition ? (
+                        {document.status === "completed" && analysisResult?.lexIntuition ? (
                           <div className="space-y-6">
                             <div>
                               <h3 className="text-lg font-medium mb-3">Predictive Insights</h3>
                               <div className="prose max-w-none">
-                                {document.analysisResult.lexIntuition.predictions?.map((paragraph: string, index: number) => (
+                                {analysisResult.lexIntuition.predictions?.map((paragraph: string, index: number) => (
                                   <p key={index} className="mb-4">{paragraph}</p>
                                 )) || (
                                   <p>No predictive insights available for this document.</p>
@@ -291,11 +294,11 @@ const DocumentAnalysisPage = () => {
                               </div>
                             </div>
 
-                            {document.analysisResult.lexIntuition.risks && (
+                            {analysisResult.lexIntuition.risks && (
                               <div>
                                 <h3 className="text-lg font-medium mb-3">Potential Risks</h3>
                                 <ul className="space-y-2">
-                                  {document.analysisResult.lexIntuition.risks.map((risk: {title: string, description: string}, index: number) => (
+                                  {analysisResult.lexIntuition.risks.map((risk: {title: string, description: string}, index: number) => (
                                     <li key={index} className="border rounded-lg p-3">
                                       <div className="flex items-center mb-1">
                                         <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
@@ -308,11 +311,11 @@ const DocumentAnalysisPage = () => {
                               </div>
                             )}
 
-                            {document.analysisResult.lexIntuition.opportunities && (
+                            {analysisResult.lexIntuition.opportunities && (
                               <div>
                                 <h3 className="text-lg font-medium mb-3">Opportunities</h3>
                                 <ul className="space-y-2">
-                                  {document.analysisResult.lexIntuition.opportunities.map((opportunity: {title: string, description: string}, index: number) => (
+                                  {analysisResult.lexIntuition.opportunities.map((opportunity: {title: string, description: string}, index: number) => (
                                     <li key={index} className="border rounded-lg p-3">
                                       <div className="flex items-center mb-1">
                                         <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
@@ -352,9 +355,9 @@ const DocumentAnalysisPage = () => {
                           </p>
                         </div>
 
-                        {document.status === "completed" && document.analysisResult?.reasoningLog ? (
+                        {document.status === "completed" && analysisResult?.reasoningLog ? (
                           <div className="space-y-5">
-                            {document.analysisResult.reasoningLog.map((entry: {step: string, reasoning: string}, index: number) => (
+                            {analysisResult.reasoningLog.map((entry: {step: string, reasoning: string}, index: number) => (
                               <div key={index} className="border-l-2 border-primary pl-4 py-1">
                                 <h4 className="font-medium text-gray-900 mb-1">Step {index + 1}: {entry.step}</h4>
                                 <p className="text-sm text-gray-600">{entry.reasoning}</p>

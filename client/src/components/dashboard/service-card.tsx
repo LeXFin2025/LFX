@@ -53,11 +53,9 @@ const ServiceCard = ({
         <p className="text-gray-600 mb-6">{description}</p>
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-500">{documentCount} document{documentCount !== 1 ? 's' : ''}</span>
-          <Link href={href}>
-            <a className={cn("inline-flex items-center text-sm font-medium", colorClasses[color].buttonColor)}>
-              Access service
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </a>
+          <Link href={href} className={cn("inline-flex items-center text-sm font-medium", colorClasses[color].buttonColor)}>
+            Access service
+            <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </div>
       </div>

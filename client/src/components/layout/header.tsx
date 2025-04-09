@@ -42,12 +42,10 @@ const Header = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4 md:justify-start md:space-x-10">
           <div className="flex justify-start lg:w-0 lg:flex-1">
-            <Link href="/">
-              <a className="flex items-center">
-                <span className="sr-only">LeXFin</span>
-                <div className="w-10 h-10 bg-primary rounded-md flex items-center justify-center text-white font-bold text-xl mr-2">L</div>
-                <span className="text-xl font-serif font-bold text-primary">LeX<span className="text-[hsl(179,48%,32%)]">Fin</span></span>
-              </a>
+            <Link href="/" className="flex items-center">
+              <span className="sr-only">LeXFin</span>
+              <div className="w-10 h-10 bg-primary rounded-md flex items-center justify-center text-white font-bold text-xl mr-2">L</div>
+              <span className="text-xl font-serif font-bold text-primary">LeX<span className="text-[hsl(179,48%,32%)]">Fin</span></span>
             </Link>
           </div>
           
@@ -66,25 +64,29 @@ const Header = () => {
           
           {/* Desktop navigation */}
           <nav className="hidden md:flex space-x-8">
-            <Link href="/">
-              <a className={`text-base font-medium ${isActive('/') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}>
-                Dashboard
-              </a>
+            <Link 
+              href="/" 
+              className={`text-base font-medium ${isActive('/') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              Dashboard
             </Link>
-            <Link href="/forensic-audit">
-              <a className={`text-base font-medium ${isActive('/forensic-audit') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}>
-                Forensic Audit
-              </a>
+            <Link 
+              href="/forensic-audit"
+              className={`text-base font-medium ${isActive('/forensic-audit') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              Forensic Audit
             </Link>
-            <Link href="/tax-saving">
-              <a className={`text-base font-medium ${isActive('/tax-saving') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}>
-                Tax Saving
-              </a>
+            <Link 
+              href="/tax-saving"
+              className={`text-base font-medium ${isActive('/tax-saving') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              Tax Saving
             </Link>
-            <Link href="/legal-services">
-              <a className={`text-base font-medium ${isActive('/legal-services') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}>
-                Legal Services
-              </a>
+            <Link 
+              href="/legal-services"
+              className={`text-base font-medium ${isActive('/legal-services') ? 'text-gray-900 border-b-2 border-primary' : 'text-gray-500 hover:text-gray-900'}`}
+            >
+              Legal Services
             </Link>
           </nav>
           
@@ -131,31 +133,42 @@ const Header = () => {
               </div>
               <div className="mt-6">
                 <nav className="grid gap-y-8">
-                  <Link href="/">
-                    <a className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50" onClick={toggleMobileMenu}>
-                      <LayoutDashboard className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
-                      <span className="text-base font-medium text-gray-900">Dashboard</span>
-                    </a>
+                  <Link 
+                    href="/"
+                    className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50"
+                    onClick={toggleMobileMenu}
+                  >
+                    <LayoutDashboard className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
+                    <span className="text-base font-medium text-gray-900">Dashboard</span>
                   </Link>
-                  <Link href="/forensic-audit">
-                    <a className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50" onClick={toggleMobileMenu}>
-                      <Search className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
-                      <span className="text-base font-medium text-gray-900">Forensic Audit</span>
-                    </a>
+                  <Link 
+                    href="/forensic-audit"
+                    className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50"
+                    onClick={toggleMobileMenu}
+                  >
+                    <Search className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
+                    <span className="text-base font-medium text-gray-900">Forensic Audit</span>
                   </Link>
-                  <Link href="/tax-saving">
-                    <a className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50" onClick={toggleMobileMenu}>
-                      <DollarSign className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
-                      <span className="text-base font-medium text-gray-900">Tax Saving</span>
-                    </a>
+                  <Link 
+                    href="/tax-saving"
+                    className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50"
+                    onClick={toggleMobileMenu}
+                  >
+                    <DollarSign className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
+                    <span className="text-base font-medium text-gray-900">Tax Saving</span>
                   </Link>
-                  <Link href="/legal-services">
-                    <a className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50" onClick={toggleMobileMenu}>
-                      <Scale className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
-                      <span className="text-base font-medium text-gray-900">Legal Services</span>
-                    </a>
+                  <Link 
+                    href="/legal-services"
+                    className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50"
+                    onClick={toggleMobileMenu}
+                  >
+                    <Scale className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
+                    <span className="text-base font-medium text-gray-900">Legal Services</span>
                   </Link>
-                  <div className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50" onClick={() => logoutMutation.mutate()}>
+                  <div 
+                    className="-m-3 p-3 flex items-center rounded-md hover:bg-gray-50 cursor-pointer" 
+                    onClick={() => logoutMutation.mutate()}
+                  >
                     <Settings className="text-primary h-6 w-6 flex-shrink-0 mr-3" />
                     <span className="text-base font-medium text-gray-900">Logout</span>
                   </div>

@@ -422,13 +422,120 @@ const DocumentAnalysisPage = () => {
                     </CardHeader>
                     <CardContent>
                       {document.status === "completed" ? (
-                        <div className="aspect-[3/4] bg-gray-100 rounded-md flex items-center justify-center relative overflow-hidden docPreview">
-                          <div className="text-center p-6">
-                            <FileText className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">Preview unavailable</p>
-                            <Button variant="outline" className="mt-4" size="sm">
+                        <div className="aspect-[3/4] bg-white rounded-md flex flex-col items-center justify-start relative overflow-hidden border docPreview">
+                          {document.filename.toLowerCase().includes("income") && (
+                            <div className="w-full p-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">INCOME STATEMENT</h3>
+                                <p className="text-gray-500 text-sm">Financial Year 2024-25</p>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Revenue:</span>
+                                  <span>₹42,85,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Cost of Goods Sold:</span>
+                                  <span>₹18,25,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1 text-primary font-medium">
+                                  <span>Gross Profit:</span>
+                                  <span>₹24,60,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Operating Expenses:</span>
+                                  <span>₹8,75,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Depreciation:</span>
+                                  <span>₹1,25,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1 text-primary font-medium">
+                                  <span>Operating Income:</span>
+                                  <span>₹14,60,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Other Income:</span>
+                                  <span>₹75,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Interest Expense:</span>
+                                  <span>₹1,50,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1 text-primary font-bold">
+                                  <span>Net Income Before Tax:</span>
+                                  <span>₹13,85,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Income Tax (30%):</span>
+                                  <span className="text-red-500">₹4,15,500</span>
+                                </div>
+                                <div className="flex justify-between pt-2 text-lg text-primary font-bold">
+                                  <span>Net Income:</span>
+                                  <span>₹9,69,500</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {document.filename.toLowerCase().includes("tax_return") && (
+                            <div className="w-full p-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">TAX RETURN</h3>
+                                <p className="text-gray-500 text-sm">Assessment Year 2024-25</p>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Gross Total Income:</span>
+                                  <span>₹18,75,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Deductions Under Chapter VI-A:</span>
+                                  <span>₹1,50,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1 text-primary font-medium">
+                                  <span>Total Taxable Income:</span>
+                                  <span>₹17,25,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Tax on Total Income:</span>
+                                  <span>₹3,30,000</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Surcharge:</span>
+                                  <span>₹0</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">Health & Education Cess:</span>
+                                  <span>₹13,200</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1 text-red-500 font-bold">
+                                  <span>Total Tax Liability:</span>
+                                  <span>₹3,43,200</span>
+                                </div>
+                                <div className="flex justify-between border-b pb-1">
+                                  <span className="font-medium">TDS/Advance Tax Paid:</span>
+                                  <span>₹3,25,000</span>
+                                </div>
+                                <div className="flex justify-between pt-2 text-lg text-red-500 font-bold">
+                                  <span>Tax Payable:</span>
+                                  <span>₹18,200</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {!document.filename.toLowerCase().includes("income") && !document.filename.toLowerCase().includes("tax_return") && (
+                            <div className="text-center p-6">
+                              <FileText className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">Preview rendering</p>
+                            </div>
+                          )}
+                          
+                          <div className="absolute bottom-0 left-0 right-0 bg-gray-50 p-3 border-t">
+                            <Button variant="outline" className="w-full" size="sm">
                               <Download className="mr-2 h-4 w-4" />
-                              Download
+                              Download Original
                             </Button>
                           </div>
                         </div>

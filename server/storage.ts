@@ -42,7 +42,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   
   // Session store
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
 }
 
 // In-memory storage implementation
@@ -59,7 +59,7 @@ export class MemStorage implements IStorage {
   private conversationId: number = 1;
   private messageId: number = 1;
   
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();

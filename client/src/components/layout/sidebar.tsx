@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Clock
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const Sidebar = ({ className }: SidebarProps) => {
     { href: "/forensic-audit", icon: Search, label: "Forensic Audit" },
     { href: "/tax-saving", icon: DollarSign, label: "Tax Saving" },
     { href: "/legal-services", icon: Scale, label: "Legal Services" },
+    { href: "/time-machine", icon: Clock, label: "LeXTime Machine™" },
   ];
 
   return (

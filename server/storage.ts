@@ -117,17 +117,21 @@ export class MemStorage implements IStorage {
     const userDocuments = Array.from(this.documents.values())
       .filter(doc => doc.userId === userId);
       
+    console.log(`STORAGE: Total documents for user ${userId}: ${userDocuments.length}`);
+    console.log(`STORAGE: Document categories:`, 
+      userDocuments.map(doc => ({id: doc.id, category: doc.category, filename: doc.filename})));
+    
     // If category is specified, strictly filter by that category only
     const filteredDocuments = category 
       ? userDocuments.filter(doc => doc.category === category)
       : userDocuments;
     
+    console.log(`STORAGE: After category filter '${category}': ${filteredDocuments.length} documents`);
+    
     // Sort by upload date (newest first)
     const sortedDocuments = filteredDocuments.sort((a, b) => 
       new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
     );
-    
-    console.log(`STORAGE: Found ${sortedDocuments.length} documents for user ${userId}${category ? ' in category ' + category : ''}`);
     
     return sortedDocuments;
   }

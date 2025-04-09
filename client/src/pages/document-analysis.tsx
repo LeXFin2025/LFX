@@ -525,10 +525,72 @@ const DocumentAnalysisPage = () => {
                             </div>
                           )}
                           
-                          {!document.filename.toLowerCase().includes("income") && !document.filename.toLowerCase().includes("tax_return") && (
-                            <div className="text-center p-6">
-                              <FileText className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">Preview rendering</p>
+                          {/* Legal document preview */}
+                          {(document.filename.toLowerCase().includes("contract") || document.filename.toLowerCase().includes("agreement") || document.filename.toLowerCase().includes("legal")) && (
+                            <div className="w-full p-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">LEGAL DOCUMENT</h3>
+                                <p className="text-gray-500 text-sm">Contract/Agreement Review</p>
+                              </div>
+                              <div className="p-3 border rounded-md mb-4 bg-gray-50">
+                                <h4 className="font-medium mb-2">Contract Terms</h4>
+                                <p className="text-sm mb-2">This agreement is made between Party A and Party B for the purpose of...</p>
+                                <p className="text-sm mb-2">The term of this agreement shall be for a period of 24 months commencing on the Effective Date...</p>
+                              </div>
+                              <div className="p-3 border rounded-md bg-gray-50">
+                                <h4 className="font-medium mb-2">Key Clauses</h4>
+                                <ul className="text-sm space-y-2">
+                                  <li>• Indemnification provisions (Section 8.2)</li>
+                                  <li>• Dispute resolution mechanism (Section 12)</li>
+                                  <li>• Force Majeure clause (Section 14.3)</li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Forensic document preview */}
+                          {(document.filename.toLowerCase().includes("forensic") || document.filename.toLowerCase().includes("audit") || document.filename.toLowerCase().includes("financial")) && (
+                            <div className="w-full p-4">
+                              <div className="text-center border-b pb-4 mb-4">
+                                <h3 className="font-bold text-xl">FINANCIAL AUDIT REPORT</h3>
+                                <p className="text-gray-500 text-sm">Forensic Analysis</p>
+                              </div>
+                              <div className="space-y-3 text-sm">
+                                <div className="p-3 border rounded-md bg-gray-50">
+                                  <h4 className="font-medium mb-1">Transaction Analysis</h4>
+                                  <p>Multiple high-value transactions detected without supporting documentation.</p>
+                                </div>
+                                <div className="p-3 border rounded-md bg-gray-50">
+                                  <h4 className="font-medium mb-1">Vendor Verification</h4>
+                                  <p>3 vendors identified with questionable business registration details.</p>
+                                </div>
+                                <div className="p-3 border rounded-md bg-gray-50">
+                                  <h4 className="font-medium mb-1">Financial Discrepancies</h4>
+                                  <p>Gap identified between reported expenses and actual bank transactions.</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* General fallback for any other document type */}
+                          {!document.filename.toLowerCase().includes("income") && 
+                           !document.filename.toLowerCase().includes("tax_return") && 
+                           !document.filename.toLowerCase().includes("contract") && 
+                           !document.filename.toLowerCase().includes("agreement") && 
+                           !document.filename.toLowerCase().includes("legal") &&
+                           !document.filename.toLowerCase().includes("forensic") && 
+                           !document.filename.toLowerCase().includes("audit") && 
+                           !document.filename.toLowerCase().includes("financial") && (
+                            <div className="w-full p-4">
+                              <div className="text-center">
+                                <FileText className="h-10 w-10 text-primary mx-auto mb-2" />
+                                <h3 className="font-medium mb-1">{document.filename}</h3>
+                                <p className="text-sm text-gray-500 mb-4">Document loaded successfully</p>
+                                <div className="p-3 border rounded-md bg-gray-50 text-sm">
+                                  <p>This document has been analyzed by our AI system.</p>
+                                  <p>Please refer to the analysis tab for detailed insights.</p>
+                                </div>
+                              </div>
                             </div>
                           )}
                           

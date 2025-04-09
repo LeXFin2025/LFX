@@ -78,7 +78,7 @@ export const insertDocumentSchema = createInsertSchema(documents).pick({
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  type: text("type", { enum: ["upload", "analysis", "lexassist", "lexintuition", "login"] }).notNull(),
+  type: text("type", { enum: ["upload", "analysis", "lexassist", "lexintuition", "login", "time-machine"] }).notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   details: jsonb("details"),
   relatedDocumentId: integer("related_document_id"),

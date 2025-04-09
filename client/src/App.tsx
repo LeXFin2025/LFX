@@ -11,6 +11,7 @@ import ForensicAuditPage from "@/pages/forensic-audit";
 import TaxSavingPage from "@/pages/tax-saving";
 import LegalServicesPage from "@/pages/legal-services";
 import DocumentAnalysisPage from "@/pages/document-analysis";
+import TimeMachinePage from "@/pages/time-machine";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <ProtectedRoute path="/forensic-audit" component={ForensicAuditPage} />
       <ProtectedRoute path="/tax-saving" component={TaxSavingPage} />
       <ProtectedRoute path="/legal-services" component={LegalServicesPage} />
+      <ProtectedRoute path="/time-machine" component={TimeMachinePage} />
       <ProtectedRoute path="/document/:id" component={DocumentAnalysisPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />

@@ -7,7 +7,7 @@ import RecentActivities from "@/components/dashboard/recent-activities";
 import QuickUpload from "@/components/dashboard/quick-upload";
 import LexAssistChat from "@/components/dashboard/lex-assist-chat";
 import AIAssistantBubble from "@/components/common/ai-assistant-bubble";
-import { Search, DollarSign, Scale } from "lucide-react";
+import { Search, DollarSign, Scale, Clock } from "lucide-react";
 
 const DashboardPage = () => {
   const [lexAssistOpen, setLexAssistOpen] = useState(false);
@@ -25,7 +25,7 @@ const DashboardPage = () => {
           <WelcomeBanner onStartLexAssist={handleStartLexAssist} />
           
           <h2 className="text-xl font-serif font-semibold text-gray-900 mb-4">Services</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <ServiceCard
               title="Forensic Audit"
               description="Detailed financial analysis to uncover potential irregularities, fraud, or improper financial management."
@@ -51,6 +51,15 @@ const DashboardPage = () => {
               documentCount={2}
               href="/legal-services"
               color="accent"
+            />
+            
+            <ServiceCard
+              title="LeXTime Machine™"
+              description="AI-powered future simulation engine that projects legal and financial risks 6-24 months ahead based on real-world trends."
+              icon={Clock}
+              documentCount={0}
+              href="/time-machine"
+              color="primary"
             />
           </div>
           

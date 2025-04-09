@@ -402,9 +402,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      console.log(`Starting AI response generation for conversation ${conversation.id}, user message: "${userMessage.content.substring(0, 50)}${userMessage.content.length > 50 ? '...' : ''}"`);
+      
       // Generate AI response asynchronously
       generateAIResponse(conversation, userMessage);
       
+      console.log(`Message submitted, returning response to client with ID: ${userMessage.id}`);
       res.status(201).json(userMessage);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -423,14 +426,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     ws.on('message', (message) => {
       try {
+        console.log('WebSocket message received:', message.toString());
         const data = JSON.parse(message.toString());
         
         // Handle authentication
-        if (data.type === 'auth' && data.sessionId) {
-          // In a real app, validate the session ID
-          ws.sessionId = data.sessionId;
-          ws.userId = data.userId;
-          ws.send(JSON.stringify({ type: 'auth', status: 'success' }));
+        if (data.type === 'auth') {
+          console.log(`Authentication request: userId=${data.userId}, sessionId=${data.sessionId || 'none'}`);
+          
+          // In a production app, validate the session ID
+          // For our current implementation, we'll accept userId directly
+          if (data.userId) {
+            ws.userId = data.userId;
+            console.log(`Client authenticated with user ID: ${ws.userId}`);
+            ws.send(JSON.stringify({ type: 'auth', status: 'success', userId: ws.userId }));
+          } else if (data.sessionId) {
+            // Legacy support for sessionId
+            ws.sessionId = data.sessionId;
+            ws.userId = data.userId;
+            ws.send(JSON.stringify({ type: 'auth', status: 'success' }));
+          } else {
+            console.log('Authentication failed: missing userId or sessionId');
+            ws.send(JSON.stringify({ type: 'auth', status: 'error', message: 'Missing userId or sessionId' }));
+          }
+        } else {
+          console.log(`Received non-auth message type: ${data.type}`);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -444,11 +463,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to broadcast updates to connected clients
   const broadcastToUser = (userId: number, data: any) => {
+    console.log(`Broadcasting to user ID ${userId} - Active clients: ${wss.clients.size}`);
+    
+    let clientsNotified = 0;
+    
     wss.clients.forEach((client: AuthenticatedWebSocket) => {
-      if (client.readyState === WebSocket.OPEN && client.userId === userId) {
-        client.send(JSON.stringify(data));
+      console.log(`Checking client - readyState: ${client.readyState}, userID: ${client.userId}`);
+      
+      if (client.readyState === WebSocket.OPEN) {
+        if (client.userId === userId) {
+          try {
+            const payload = JSON.stringify(data);
+            console.log(`Sending to client: ${payload.substring(0, 100)}${payload.length > 100 ? '...' : ''}`);
+            client.send(payload);
+            clientsNotified++;
+          } catch (error) {
+            console.error('Error sending websocket message:', error);
+          }
+        } else {
+          console.log(`Client user ID ${client.userId} doesn't match target ${userId}`);
+        }
+      } else {
+        console.log(`Client not open, state: ${client.readyState}`);
       }
     });
+    
+    console.log(`Broadcast complete - Notified ${clientsNotified} of ${wss.clients.size} clients`);
   };
 
   // Asynchronous document processing
@@ -850,12 +890,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await dbStorage.updateConversation(conversation.id, { lastMessageAt: new Date() });
       
       // Broadcast message to user
-      broadcastToUser(conversation.userId, {
+      const broadcastPayload = {
         type: 'new_message',
-        message: assistantMessage
-      });
+        message: assistantMessage,
+        conversationId: conversation.id
+      };
       
-      console.log(`Broadcast message to user ${conversation.userId}`);
+      console.log(`Broadcasting message to user ${conversation.userId}:`, JSON.stringify(broadcastPayload));
+      
+      broadcastToUser(conversation.userId, broadcastPayload);
+      
+      console.log(`Broadcast complete for user ${conversation.userId}`);
       
     } catch (error) {
       console.error("Error generating AI response:", error);

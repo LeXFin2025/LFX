@@ -45,6 +45,10 @@ const LexAssistChat = ({ expanded = false, conversationId }: LexAssistChatProps)
   const { data: messages, isLoading: isMessagesLoading } = useQuery<Message[]>({
     queryKey: ["/api/conversations", selectedConversation, "messages"],
     enabled: !!selectedConversation,
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/conversations/${selectedConversation}/messages`);
+      return await res.json();
+    }
   });
 
   // Create a new conversation if needed
@@ -114,6 +118,55 @@ const LexAssistChat = ({ expanded = false, conversationId }: LexAssistChatProps)
       setSelectedConversation(conversation.id);
     }
   }, [conversation, selectedConversation]);
+
+  // Set up websocket for real-time updates
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    // Create WebSocket connection
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    
+    socket.onopen = () => {
+      console.log("WebSocket connected");
+      // Authenticate socket with user ID
+      if (user?.id) {
+        socket.send(JSON.stringify({
+          type: 'auth',
+          userId: user.id
+        }));
+      }
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WebSocket message received:", data);
+        
+        // Handle different message types
+        if (data.type === 'new_message' && data.message) {
+          console.log("New message received via WebSocket");
+          // Invalidate messages query to fetch latest messages
+          queryClient.invalidateQueries({ queryKey: ["/api/conversations", selectedConversation, "messages"] });
+        }
+      } catch (err) {
+        console.error("Error processing WebSocket message:", err);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket disconnected");
+    };
+
+    // Clean up
+    return () => {
+      socket.close();
+    };
+  }, [selectedConversation, user?.id]);
 
   // Scroll to bottom on new messages
   useEffect(() => {

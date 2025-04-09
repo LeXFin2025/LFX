@@ -31,23 +31,23 @@ const Footer = () => {
           <div className="mt-4 md:mt-0">
             <ul className="flex space-x-6">
               <li>
-                <Link href="#">
-                  <a className="text-sm text-gray-500 hover:text-gray-900">Terms</a>
+                <Link href="#" className="text-sm text-gray-500 hover:text-gray-900">
+                  Terms
                 </Link>
               </li>
               <li>
-                <Link href="#">
-                  <a className="text-sm text-gray-500 hover:text-gray-900">Privacy</a>
+                <Link href="#" className="text-sm text-gray-500 hover:text-gray-900">
+                  Privacy
                 </Link>
               </li>
               <li>
-                <Link href="#">
-                  <a className="text-sm text-gray-500 hover:text-gray-900">Security</a>
+                <Link href="#" className="text-sm text-gray-500 hover:text-gray-900">
+                  Security
                 </Link>
               </li>
               <li>
-                <Link href="#">
-                  <a className="text-sm text-gray-500 hover:text-gray-900">Support</a>
+                <Link href="#" className="text-sm text-gray-500 hover:text-gray-900">
+                  Support
                 </Link>
               </li>
             </ul>

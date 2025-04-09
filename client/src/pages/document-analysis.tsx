@@ -8,7 +8,7 @@ import AIAssistantBubble from "@/components/common/ai-assistant-bubble";
 import LexAssistChat from "@/components/dashboard/lex-assist-chat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   FileText,
@@ -197,8 +197,9 @@ const DocumentAnalysisPage = () => {
                       </Tabs>
                     </CardHeader>
                     <CardContent>
-                      <TabsContent value="analysis" className="mt-0">
-                        {document.status === "completed" && analysisResult ? (
+                      {/* Analysis Tab */}
+                      {activeTab === "analysis" && (
+                        document.status === "completed" && analysisResult ? (
                           <div className="space-y-6">
                             <div>
                               <h2 className="text-xl font-medium mb-4">{getServiceTitle(document.category)}</h2>
@@ -267,113 +268,119 @@ const DocumentAnalysisPage = () => {
                               There was an issue processing this document. Please try uploading it again.
                             </p>
                           </div>
-                        )}
-                      </TabsContent>
+                        )
+                      )}
 
-                      <TabsContent value="insights" className="mt-0">
-                        <div className="bg-gradient-to-r from-primary/5 to-blue-500/5 rounded-lg p-4 mb-6 border border-primary/10">
-                          <div className="flex items-center mb-3">
-                            <BrainCircuit className="h-5 w-5 text-primary mr-2" />
-                            <h3 className="font-medium">LeXIntuition Engine</h3>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Our AI-powered foresight system predicts potential future risks and opportunities based on your document.
-                          </p>
-                        </div>
-
-                        {document.status === "completed" && analysisResult?.lexIntuition ? (
-                          <div className="space-y-6">
-                            <div>
-                              <h3 className="text-lg font-medium mb-3">Predictive Insights</h3>
-                              <div className="prose max-w-none">
-                                {analysisResult.lexIntuition.predictions?.map((paragraph: string, index: number) => (
-                                  <p key={index} className="mb-4">{paragraph}</p>
-                                )) || (
-                                  <p>No predictive insights available for this document.</p>
-                                )}
-                              </div>
+                      {/* Insights Tab */}
+                      {activeTab === "insights" && (
+                        <>
+                          <div className="bg-gradient-to-r from-primary/5 to-blue-500/5 rounded-lg p-4 mb-6 border border-primary/10">
+                            <div className="flex items-center mb-3">
+                              <BrainCircuit className="h-5 w-5 text-primary mr-2" />
+                              <h3 className="font-medium">LeXIntuition Engine</h3>
                             </div>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Our AI-powered foresight system predicts potential future risks and opportunities based on your document.
+                            </p>
+                          </div>
 
-                            {analysisResult.lexIntuition.risks && (
+                          {document.status === "completed" && analysisResult?.lexIntuition ? (
+                            <div className="space-y-6">
                               <div>
-                                <h3 className="text-lg font-medium mb-3">Potential Risks</h3>
-                                <ul className="space-y-2">
-                                  {analysisResult.lexIntuition.risks.map((risk: {title: string, description: string}, index: number) => (
-                                    <li key={index} className="border rounded-lg p-3">
-                                      <div className="flex items-center mb-1">
-                                        <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
-                                        <span className="font-medium">{risk.title}</span>
-                                      </div>
-                                      <p className="text-sm text-gray-600 ml-6">{risk.description}</p>
-                                    </li>
-                                  ))}
-                                </ul>
+                                <h3 className="text-lg font-medium mb-3">Predictive Insights</h3>
+                                <div className="prose max-w-none">
+                                  {analysisResult.lexIntuition.predictions?.map((paragraph: string, index: number) => (
+                                    <p key={index} className="mb-4">{paragraph}</p>
+                                  )) || (
+                                    <p>No predictive insights available for this document.</p>
+                                  )}
+                                </div>
                               </div>
-                            )}
 
-                            {analysisResult.lexIntuition.opportunities && (
-                              <div>
-                                <h3 className="text-lg font-medium mb-3">Opportunities</h3>
-                                <ul className="space-y-2">
-                                  {analysisResult.lexIntuition.opportunities.map((opportunity: {title: string, description: string}, index: number) => (
-                                    <li key={index} className="border rounded-lg p-3">
-                                      <div className="flex items-center mb-1">
-                                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                        <span className="font-medium">{opportunity.title}</span>
-                                      </div>
-                                      <p className="text-sm text-gray-600 ml-6">{opportunity.description}</p>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        ) : document.status === "completed" ? (
-                          <div className="text-center py-12">
-                            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">LeXIntuition insights unavailable</h3>
-                            <p className="text-gray-500">
-                              Predictive insights could not be generated for this document.
+                              {analysisResult.lexIntuition.risks && (
+                                <div>
+                                  <h3 className="text-lg font-medium mb-3">Potential Risks</h3>
+                                  <ul className="space-y-2">
+                                    {analysisResult.lexIntuition.risks.map((risk: {title: string, description: string}, index: number) => (
+                                      <li key={index} className="border rounded-lg p-3">
+                                        <div className="flex items-center mb-1">
+                                          <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
+                                          <span className="font-medium">{risk.title}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 ml-6">{risk.description}</p>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {analysisResult.lexIntuition.opportunities && (
+                                <div>
+                                  <h3 className="text-lg font-medium mb-3">Opportunities</h3>
+                                  <ul className="space-y-2">
+                                    {analysisResult.lexIntuition.opportunities.map((opportunity: {title: string, description: string}, index: number) => (
+                                      <li key={index} className="border rounded-lg p-3">
+                                        <div className="flex items-center mb-1">
+                                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                          <span className="font-medium">{opportunity.title}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 ml-6">{opportunity.description}</p>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ) : document.status === "completed" ? (
+                            <div className="text-center py-12">
+                              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">LeXIntuition insights unavailable</h3>
+                              <p className="text-gray-500">
+                                Predictive insights could not be generated for this document.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Clock className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">Insights being generated</h3>
+                              <p className="text-gray-500">
+                                We're generating predictive insights for your document. This may take a few minutes.
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Reasoning Tab */}
+                      {activeTab === "reasoning" && (
+                        <>
+                          <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
+                            <h3 className="font-medium mb-2">AI Behavior Log</h3>
+                            <p className="text-sm text-gray-600">
+                              This section provides transparency into how our AI arrived at its conclusions and recommendations.
                             </p>
                           </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <Clock className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Insights being generated</h3>
-                            <p className="text-gray-500">
-                              We're generating predictive insights for your document. This may take a few minutes.
-                            </p>
-                          </div>
-                        )}
-                      </TabsContent>
 
-                      <TabsContent value="reasoning" className="mt-0">
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6 border">
-                          <h3 className="font-medium mb-2">AI Behavior Log</h3>
-                          <p className="text-sm text-gray-600">
-                            This section provides transparency into how our AI arrived at its conclusions and recommendations.
-                          </p>
-                        </div>
-
-                        {document.status === "completed" && analysisResult?.reasoningLog ? (
-                          <div className="space-y-5">
-                            {analysisResult.reasoningLog.map((entry: {step: string, reasoning: string}, index: number) => (
-                              <div key={index} className="border-l-2 border-primary pl-4 py-1">
-                                <h4 className="font-medium text-gray-900 mb-1">Step {index + 1}: {entry.step}</h4>
-                                <p className="text-sm text-gray-600">{entry.reasoning}</p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Reasoning log unavailable</h3>
-                            <p className="text-gray-500">
-                              The AI reasoning log is not available for this document analysis.
-                            </p>
-                          </div>
-                        )}
-                      </TabsContent>
+                          {document.status === "completed" && analysisResult?.reasoningLog ? (
+                            <div className="space-y-5">
+                              {analysisResult.reasoningLog.map((entry: {step: string, reasoning: string}, index: number) => (
+                                <div key={index} className="border-l-2 border-primary pl-4 py-1">
+                                  <h4 className="font-medium text-gray-900 mb-1">Step {index + 1}: {entry.step}</h4>
+                                  <p className="text-sm text-gray-600">{entry.reasoning}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">Reasoning log unavailable</h3>
+                              <p className="text-gray-500">
+                                The AI reasoning log is not available for this document analysis.
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -406,7 +413,7 @@ const DocumentAnalysisPage = () => {
                     </CardContent>
                   </Card>
 
-                  <LexAssistChat />
+                  <LexAssistChat expanded={true} />
                 </div>
               </div>
             </>

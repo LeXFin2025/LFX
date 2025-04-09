@@ -3,6 +3,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // Initialize the Gemini API client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+// Current model name based on API version (1.0)
+const MODEL_NAME = 'gemini-1.5-pro';
+
 export type GenerateResponseOptions = {
   userMessage: string;
   chatHistory?: {
@@ -21,7 +24,15 @@ export async function generateResponse(options: GenerateResponseOptions): Promis
 
   try {
     // Create a conversation model
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ 
+      model: MODEL_NAME,
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.8,
+        topK: 40,
+        maxOutputTokens: 2048,
+      }
+    });
     
     // Prepare chat history in the format expected by Gemini
     const formattedHistory = chatHistory.map(msg => ({
@@ -66,12 +77,28 @@ Remember that all information needs to be jurisdiction-appropriate for ${jurisdi
  * Analyze a document using Gemini API
  */
 export async function analyzeDocument(documentText: string, documentType: string, jurisdiction: string): Promise<{
-  analysis: string;
-  risks: string[];
+  analysis: string[];
+  risks: {title: string, description: string}[];
   recommendations: string[];
+  references: {title: string, url?: string}[];
+  lexIntuition: {
+    predictions: string[],
+    risks: {title: string, description: string}[],
+    opportunities: {title: string, description: string}[]
+  };
+  reasoningLog: {step: string, reasoning: string}[];
 }> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ 
+      model: MODEL_NAME,
+      generationConfig: {
+        temperature: 0.2, // Lower temperature for more structured output
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 8192, // Allow for longer responses
+        responseMimeType: "application/json", // Explicitly request JSON
+      }
+    });
     
     const prompt = `
 You are LeXIntuition, an AI-powered legal and financial analysis engine specialized in ${jurisdiction} jurisdiction.
@@ -88,13 +115,38 @@ Provide a comprehensive analysis including:
 3. Financial implications
 4. Compliance considerations specific to ${jurisdiction}
 5. Recommendations for improving the document or addressing potential issues
+6. Future predictions and potential opportunities
 
-Format your response as JSON with the following structure:
+Format your response EXACTLY as JSON with the following structure:
 {
-  "analysis": "Detailed analysis of the document",
-  "risks": ["Risk 1", "Risk 2", "Risk 3"],
-  "recommendations": ["Recommendation 1", "Recommendation 2", "Recommendation 3"]
+  "analysis": ["Paragraph 1 of analysis", "Paragraph 2 of analysis", "Paragraph 3 of analysis"],
+  "risks": [
+    {"title": "Risk Title 1", "description": "Detailed description of risk 1"},
+    {"title": "Risk Title 2", "description": "Detailed description of risk 2"}
+  ],
+  "recommendations": ["Recommendation 1", "Recommendation 2", "Recommendation 3"],
+  "references": [
+    {"title": "Reference Title 1", "url": "https://example.com/reference1"},
+    {"title": "Reference Title 2"}
+  ],
+  "lexIntuition": {
+    "predictions": ["Prediction paragraph 1", "Prediction paragraph 2"],
+    "risks": [
+      {"title": "Future Risk 1", "description": "Description of future risk 1"},
+      {"title": "Future Risk 2", "description": "Description of future risk 2"}
+    ],
+    "opportunities": [
+      {"title": "Opportunity 1", "description": "Description of opportunity 1"},
+      {"title": "Opportunity 2", "description": "Description of opportunity 2"}
+    ]
+  },
+  "reasoningLog": [
+    {"step": "Document Analysis", "reasoning": "Explanation of how document was analyzed"},
+    {"step": "Risk Assessment", "reasoning": "Explanation of the risk assessment process"}
+  ]
 }
+
+Make sure your output is valid JSON that can be parsed directly. DO NOT include markdown code blocks, explanations, or any other text outside of the JSON structure.
 `;
 
     const result = await model.generateContent(prompt);
@@ -109,25 +161,48 @@ Format your response as JSON with the following structure:
         const jsonStr = jsonMatch[1] || jsonMatch[0];
         const parsed = JSON.parse(jsonStr);
         return {
-          analysis: parsed.analysis || "Analysis unavailable",
-          risks: parsed.risks || [],
-          recommendations: parsed.recommendations || []
+          analysis: Array.isArray(parsed.analysis) ? parsed.analysis : [parsed.analysis || "Analysis unavailable"],
+          risks: Array.isArray(parsed.risks) ? parsed.risks : [],
+          recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+          references: Array.isArray(parsed.references) ? parsed.references : [],
+          lexIntuition: {
+            predictions: Array.isArray(parsed.lexIntuition?.predictions) ? parsed.lexIntuition.predictions : [],
+            risks: Array.isArray(parsed.lexIntuition?.risks) ? parsed.lexIntuition.risks : [],
+            opportunities: Array.isArray(parsed.lexIntuition?.opportunities) ? parsed.lexIntuition.opportunities : []
+          },
+          reasoningLog: Array.isArray(parsed.reasoningLog) ? parsed.reasoningLog : []
         };
       } catch (jsonError) {
         console.error('Error parsing JSON from Gemini response:', jsonError);
+        // Create a fallback response with the correct structure
+        const errorMessage = "We encountered an issue analyzing this document. Please try again.";
         return {
-          analysis: text,
+          analysis: [errorMessage],
           risks: [],
-          recommendations: []
+          recommendations: [],
+          references: [],
+          lexIntuition: {
+            predictions: [],
+            risks: [],
+            opportunities: []
+          },
+          reasoningLog: []
         };
       }
     }
     
     // Fallback if JSON extraction fails
     return {
-      analysis: text,
+      analysis: ["Unable to analyze the document properly. Please try again later."],
       risks: [],
-      recommendations: []
+      recommendations: [],
+      references: [],
+      lexIntuition: {
+        predictions: [],
+        risks: [],
+        opportunities: []
+      },
+      reasoningLog: []
     };
   } catch (error) {
     console.error('Error analyzing document with Gemini API:', error);

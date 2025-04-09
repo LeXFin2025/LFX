@@ -851,8 +851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Broadcast message to user
       broadcastToUser(conversation.userId, {
-        type: 'message_update',
-        conversationId: conversation.id,
+        type: 'new_message',
         message: assistantMessage
       });
       
@@ -870,8 +869,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Broadcast error message to user
       broadcastToUser(conversation.userId, {
-        type: 'message_update',
-        conversationId: conversation.id,
+        type: 'new_message',
         message: errorMessage
       });
     }

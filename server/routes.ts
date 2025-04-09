@@ -210,21 +210,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Custom error handler for multer
-  const handleMulterError = (err: any, req: Request, res: Response, next: Function) => {
-    if (err instanceof multer.MulterError) {
-      console.error("Multer error:", err);
-      return res.status(400).send(`File upload error: ${err.message}`);
-    } else if (err) {
-      console.error("Unknown error during file upload:", err);
-      return res.status(500).send(`Unknown error during file upload: ${err.message}`);
-    }
-    next();
-  };
-
   // Upload a new document
-  app.post("/api/documents/upload", upload.single('file'), handleMulterError, async (req: Request, res: Response) => {
-    console.log("Reached document upload handler");
+  app.post("/api/documents/upload", upload.single('file'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {

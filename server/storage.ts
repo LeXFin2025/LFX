@@ -111,9 +111,18 @@ export class MemStorage implements IStorage {
   }
 
   async getDocumentsByUserId(userId: number, category?: string): Promise<Document[]> {
-    return Array.from(this.documents.values())
-      .filter((doc) => doc.userId === userId && (!category || doc.category === category))
+    console.log(`Getting documents for user ${userId} with category filter: ${category || 'all'}`);
+    
+    const documents = Array.from(this.documents.values())
+      .filter((doc) => {
+        const userIdMatch = doc.userId === userId;
+        const categoryMatch = !category || doc.category === category;
+        return userIdMatch && categoryMatch;
+      })
       .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+    
+    console.log(`Found ${documents.length} documents for user ${userId}${category ? ' in category ' + category : ''}`);
+    return documents;
   }
 
   async createDocument(document: InsertDocument): Promise<Document> {

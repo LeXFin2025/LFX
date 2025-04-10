@@ -13,7 +13,7 @@ export async function generateContent(prompt: string): Promise<string> {
     const text = response.text();
     return text;
   } catch (error) {
-    console.error('❌ Gemini API error:', error);
+    console.error(' Gemini API error:', error);
     return '⚠️ Unable to generate response from Gemini AI. Please try again later.';
   }
 }

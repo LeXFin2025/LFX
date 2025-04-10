@@ -1,7 +1,8 @@
 // server/analyze.ts
 
 import pdfParse from 'pdf-parse';
-import { generateContent } from './utils/gemini';
+import { generateContent } from '../utils/gemini';
+
  // Adjust path if needed
 
 interface AnalysisResult {
